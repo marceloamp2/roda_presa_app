@@ -23,7 +23,6 @@ const _upcomingRides = [
     hot: true,
     canceled: false,
     briefing: '09:00',
-    returnPlan: 'Livre',
     tolls: 'R\$ 14,20',
   ),
   Ride(
@@ -42,7 +41,6 @@ const _upcomingRides = [
     hot: false,
     canceled: false,
     briefing: '09:00',
-    returnPlan: 'Livre',
     tolls: 'R\$ 22,40',
   ),
   Ride(
@@ -61,7 +59,6 @@ const _upcomingRides = [
     hot: false,
     canceled: false,
     briefing: '09:00',
-    returnPlan: 'Livre',
     tolls: 'sem pedágio',
   ),
 ];
@@ -83,7 +80,6 @@ const _pastRides = [
     hot: false,
     canceled: false,
     briefing: '09:00',
-    returnPlan: 'Livre',
     tolls: 'R\$ 14,20',
   ),
   Ride(
@@ -102,7 +98,6 @@ const _pastRides = [
     hot: false,
     canceled: true,
     briefing: '09:00',
-    returnPlan: 'Livre',
     tolls: 'R\$ 14,20',
   ),
 ];

@@ -20,7 +20,6 @@ class Ride {
     required this.hot,
     required this.canceled,
     required this.briefing,
-    required this.returnPlan,
     required this.tolls,
   });
 
@@ -39,7 +38,6 @@ class Ride {
   final bool hot;
   final bool canceled;
   final String briefing;
-  final String returnPlan;
   final String tolls;
 
   String get departureSummary {
@@ -57,15 +55,11 @@ class Ride {
 🚏 Local: $destination
 ⌚ Briefing: $briefing
 ⏰ Saída: $time
-🔙 Volta: $returnPlan
 🛣️ Distância: ${distanceKm}km (ida e volta)
 📍 Local de partida: $departureName
-💵 Pedágios - $tolls
-⛽ Abastecer e 🛞 Calibrar antes de sair''';
+💵 Pedágios - $tolls''';
   }
 
-  // True confirmados: o feed traz só a contagem; o detalhe traz a lista. Usar
-  // o maior dos dois evita o número cair ao abrir o detalhe antes do fetch.
   int get baseConfirmedCount => max(confirmedCount, users.length);
 
   factory Ride.fromJson(Map<String, dynamic> json) {
@@ -89,7 +83,6 @@ class Ride {
       hot: json['hot'] as bool? ?? false,
       canceled: json['status'] == 'canceled',
       briefing: _nullableTime(json['briefing_time']) ?? 'Não informado',
-      returnPlan: json['return_free'] == false ? 'Definida' : 'Livre',
       tolls: _formatToll(json['toll']),
     );
   }

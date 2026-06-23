@@ -9,6 +9,7 @@ import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
 import '../widgets/ride_card.dart';
+import '../widgets/search_sheet_status.dart';
 import 'ride_detail_screen.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -269,14 +270,24 @@ class _HomeBack extends StatelessWidget {
   }
 }
 
-class _RadiusControl extends StatelessWidget {
+class _RadiusControl extends StatefulWidget {
   const _RadiusControl({required this.radiusKm, required this.onChanged});
 
   final double radiusKm;
   final ValueChanged<double> onChanged;
 
   @override
+  State<_RadiusControl> createState() => _RadiusControlState();
+}
+
+class _RadiusControlState extends State<_RadiusControl> {
+  // Valor exibido durante o arraste; o refetch só dispara ao soltar o slider.
+  double? _dragValue;
+
+  @override
   Widget build(BuildContext context) {
+    final value = _dragValue ?? widget.radiusKm;
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AppColors.paper2,
@@ -291,17 +302,21 @@ class _RadiusControl extends StatelessWidget {
                 const SectionLabel('SAÍDAS EM UM RAIO DE:'),
                 const Spacer(),
                 Text(
-                  '${radiusKm.round()} km',
+                  '${value.round()} km',
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ],
             ),
             Slider(
-              value: radiusKm,
+              value: value,
               min: 10,
               max: 100,
               divisions: 9,
-              onChanged: onChanged,
+              onChanged: (value) => setState(() => _dragValue = value),
+              onChangeEnd: (value) {
+                setState(() => _dragValue = null);
+                widget.onChanged(value);
+              },
             ),
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -449,7 +464,6 @@ class _LocationSheetState extends State<_LocationSheet> {
   bool _loading = false;
   String? _errorMessage;
   bool _hasSearched = false;
-  String _lastSearch = '';
   int _requestVersion = 0;
 
   @override
@@ -509,19 +523,19 @@ class _LocationSheetState extends State<_LocationSheet> {
 
   Widget _resultContent() {
     if (!_hasSearched) {
-      return const _LocationMessage('Digite pelo menos 2 letras da cidade.');
+      return const SearchSheetMessage('Digite pelo menos 2 letras da cidade.');
     }
 
     if (_loading) {
-      return const _LocationMessage.withProgress('Buscando cidades...');
+      return const SearchSheetMessage.withProgress('Buscando cidades...');
     }
 
     if (_errorMessage != null) {
-      return _LocationSearchError(onRetry: _retrySearch);
+      return SearchSheetError(message: _errorMessage!, onRetry: _retrySearch);
     }
 
     if (_cities.isEmpty) {
-      return const _LocationMessage('Nenhuma cidade encontrada.');
+      return const SearchSheetMessage('Nenhuma cidade encontrada.');
     }
 
     return ListView.builder(
@@ -544,36 +558,32 @@ class _LocationSheetState extends State<_LocationSheet> {
     final search = value.trim();
     final requestVersion = ++_requestVersion;
     _debounce?.cancel();
-    _lastSearch = search;
 
     if (search.length < _minimumSearchLength) {
       _resetSearch();
       return;
     }
 
-    setState(() {
-      _cities = const [];
-      _loading = true;
-      _errorMessage = null;
-      _hasSearched = true;
-    });
-
+    _startSearching();
     _debounce = Timer(
       _debounceDuration,
       () => _searchCities(search, requestVersion),
     );
   }
 
-  Future<void> _searchCities(String search, int requestVersion) async {
-    if (!mounted) {
-      return;
-    }
-
+  void _startSearching() {
     setState(() {
+      _cities = const [];
       _loading = true;
       _errorMessage = null;
       _hasSearched = true;
     });
+  }
+
+  Future<void> _searchCities(String search, int requestVersion) async {
+    if (!mounted) {
+      return;
+    }
 
     try {
       final cities = await widget.rideApiService.searchCities(
@@ -603,13 +613,15 @@ class _LocationSheetState extends State<_LocationSheet> {
   }
 
   void _retrySearch() {
-    if (_lastSearch.length < _minimumSearchLength) {
+    final search = _controller.text.trim();
+    if (search.length < _minimumSearchLength) {
       return;
     }
 
     _debounce?.cancel();
     final requestVersion = ++_requestVersion;
-    _searchCities(_lastSearch, requestVersion);
+    _startSearching();
+    _searchCities(search, requestVersion);
   }
 
   void _resetSearch() {
@@ -624,74 +636,6 @@ class _LocationSheetState extends State<_LocationSheet> {
   void _select(BuildContext context, City city) {
     widget.onCitySelected(city);
     Navigator.pop(context);
-  }
-}
-
-class _LocationMessage extends StatelessWidget {
-  const _LocationMessage(this.message) : showProgress = false;
-
-  const _LocationMessage.withProgress(this.message) : showProgress = true;
-
-  final String message;
-  final bool showProgress;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (showProgress) ...[
-              const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 3),
-              ),
-              const SizedBox(height: 12),
-            ],
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LocationSearchError extends StatelessWidget {
-  const _LocationSearchError({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const FaIcon(FontAwesomeIcons.triangleExclamation, size: 24),
-            const SizedBox(height: 10),
-            const Text(
-              'Não foi possível buscar cidades agora.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton(
-              onPressed: onRetry,
-              child: const Text('Tentar novamente'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }
 

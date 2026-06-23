@@ -1,26 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../models/place.dart';
+import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
+import '../widgets/place_search_field.dart';
 
 class CreateRideScreen extends StatefulWidget {
-  const CreateRideScreen({super.key});
+  const CreateRideScreen({required this.isActive, super.key});
+
+  final bool isActive;
 
   @override
   State<CreateRideScreen> createState() => _CreateRideScreenState();
 }
 
 class _CreateRideScreenState extends State<CreateRideScreen> {
-  final TextEditingController _destinationController = TextEditingController();
-  final TextEditingController _startPointController = TextEditingController();
+  final RideApiService _rideApiService = RideApiService();
   final TextEditingController _tollsController = TextEditingController();
-  final TextEditingController _returnController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
 
   DateTime? _selectedDate;
   TimeOfDay? _selectedBriefingTime;
   TimeOfDay? _selectedDepartureTime;
+  SelectedPlace? _destinationPlace;
+  SelectedPlace? _startPlace;
+  bool _publishing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -38,17 +45,21 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
             onTap: _selectDate,
             isPlaceholder: _selectedDate == null,
           ),
-          _TextInputField(
+          PlaceSearchField(
             label: 'Destino',
             hintText: AppStrings.selectPlaceholder,
             icon: FontAwesomeIcons.flagCheckered,
-            controller: _destinationController,
+            rideApiService: _rideApiService,
+            selectedPlace: _destinationPlace,
+            onSelected: (place) => setState(() => _destinationPlace = place),
           ),
-          _TextInputField(
+          PlaceSearchField(
             label: 'Ponto de partida',
             hintText: AppStrings.selectPlaceholder,
             icon: FontAwesomeIcons.gasPump,
-            controller: _startPointController,
+            rideApiService: _rideApiService,
+            selectedPlace: _startPlace,
+            onSelected: (place) => setState(() => _startPlace = place),
           ),
           _SelectorField(
             label: 'Hora do briefing',
@@ -65,20 +76,25 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
             isPlaceholder: _selectedDepartureTime == null,
           ),
           _TextInputField(
-            label: 'Pedágios',
-            hintText: AppStrings.selectPlaceholder,
+            label: 'Pedágios (ida e volta)',
+            hintText: 'R\$ 0,00',
             icon: FontAwesomeIcons.moneyBill,
             controller: _tollsController,
-          ),
-          _TextInputField(
-            label: 'Volta',
-            hintText: AppStrings.selectPlaceholder,
-            icon: FontAwesomeIcons.arrowRotateLeft,
-            controller: _returnController,
+            keyboardType: TextInputType.number,
+            inputFormatters: const [_BrazilianCurrencyInputFormatter()],
           ),
           _SuggestedTitle(controller: _titleController),
           const SizedBox(height: AppGaps.lg),
-          FilledButton(onPressed: _publish, child: const Text('Publicar role')),
+          FilledButton(
+            onPressed: _publishing ? null : _publish,
+            child: _publishing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 3),
+                  )
+                : const Text('Publicar role'),
+          ),
           const SizedBox(height: AppGaps.bottom),
         ],
       ),
@@ -86,13 +102,30 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant CreateRideScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!oldWidget.isActive && widget.isActive) {
+      _resetFields();
+    }
+  }
+
+  @override
   void dispose() {
-    _destinationController.dispose();
-    _startPointController.dispose();
+    _rideApiService.close();
     _tollsController.dispose();
-    _returnController.dispose();
     _titleController.dispose();
     super.dispose();
+  }
+
+  void _resetFields() {
+    _selectedDate = null;
+    _selectedBriefingTime = null;
+    _selectedDepartureTime = null;
+    _destinationPlace = null;
+    _startPlace = null;
+    _tollsController.clear();
+    _titleController.clear();
   }
 
   String get _formattedDate {
@@ -159,12 +192,124 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     setState(() => onPicked(pickedTime));
   }
 
-  void _publish() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Role mockado publicado para visualização.'),
-      ),
-    );
+  Future<void> _publish() async {
+    final validationMessage = _validationMessage();
+    if (validationMessage != null) {
+      _showMessage(validationMessage);
+      return;
+    }
+
+    final toll = _parseToll();
+    if (toll == null && _tollsController.text.trim().isNotEmpty) {
+      _showMessage('Informe o pedágio como valor em reais.');
+      return;
+    }
+
+    setState(() => _publishing = true);
+
+    try {
+      await _rideApiService.createRide(
+        title: _titleController.text.trim(),
+        rideDate: _formatDateForApi(_selectedDate!),
+        briefingTime: _selectedBriefingTime == null
+            ? null
+            : _formatTimeForApi(_selectedBriefingTime!),
+        departureTime: _formatTimeForApi(_selectedDepartureTime!),
+        startPlace: _startPlace!,
+        destinationPlace: _destinationPlace!,
+        toll: toll,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _publishing = false;
+        _resetFields();
+      });
+      _showMessage('Role publicado.');
+    } catch (exception) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() => _publishing = false);
+      _showMessage(_publishErrorMessage(exception));
+    }
+  }
+
+  String? _validationMessage() {
+    if (_destinationPlace == null) {
+      return 'Selecione o destino na lista.';
+    }
+
+    if (_startPlace == null) {
+      return 'Selecione o ponto de partida na lista.';
+    }
+
+    if (_selectedDate == null) {
+      return 'Selecione a data do role.';
+    }
+
+    if (_selectedDepartureTime == null) {
+      return 'Selecione a hora da saída.';
+    }
+
+    if (_titleController.text.trim().isEmpty) {
+      return 'Digite o título do role.';
+    }
+
+    return null;
+  }
+
+  double? _parseToll() {
+    final value = _tollsController.text.trim();
+    if (value.isEmpty) {
+      return null;
+    }
+
+    var cleanValue = value.replaceAll(RegExp(r'[^0-9,.]'), '');
+    if (cleanValue.contains(',')) {
+      cleanValue = cleanValue.replaceAll('.', '').replaceAll(',', '.');
+    }
+
+    final parsed = double.tryParse(cleanValue);
+    if (parsed == null || parsed < 0) {
+      return null;
+    }
+
+    return parsed;
+  }
+
+  String _formatDateForApi(DateTime date) {
+    return '${date.year}-'
+        '${AppDateStrings.twoDigits(date.month)}-'
+        '${AppDateStrings.twoDigits(date.day)}';
+  }
+
+  String _formatTimeForApi(TimeOfDay time) {
+    return '${AppDateStrings.twoDigits(time.hour)}:'
+        '${AppDateStrings.twoDigits(time.minute)}';
+  }
+
+  String _publishErrorMessage(Object exception) {
+    if (exception is RideApiException) {
+      return switch (exception.statusCode) {
+        422 => 'Confira os dados do role antes de publicar.',
+        429 => 'Muitas tentativas. Aguarde um pouco e tente novamente.',
+        502 => 'Não foi possível publicar agora. Tente novamente em instantes.',
+        _ => exception.message,
+      };
+    }
+
+    return 'Não foi possível publicar o role agora.';
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -221,12 +366,16 @@ class _TextInputField extends StatelessWidget {
     required this.hintText,
     required this.icon,
     required this.controller,
+    this.keyboardType,
+    this.inputFormatters,
   });
 
   final String label;
   final String hintText;
   final FaIconData icon;
   final TextEditingController controller;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   @override
   Widget build(BuildContext context) {
@@ -258,6 +407,8 @@ class _TextInputField extends StatelessWidget {
                 ),
                 TextField(
                   controller: controller,
+                  keyboardType: keyboardType,
+                  inputFormatters: inputFormatters,
                   style: const TextStyle(
                     fontSize: 18,
                     color: AppColors.ink,
@@ -284,6 +435,45 @@ class _TextInputField extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _BrazilianCurrencyInputFormatter extends TextInputFormatter {
+  const _BrazilianCurrencyInputFormatter();
+
+  static final RegExp _nonDigits = RegExp(r'\D');
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(_nonDigits, '');
+    if (digits.isEmpty) {
+      return const TextEditingValue();
+    }
+
+    final centsValue = int.parse(digits);
+    final reais = centsValue ~/ 100;
+    final cents = centsValue % 100;
+    final text = 'R\$ ${_formatReais(reais)},${AppDateStrings.twoDigits(cents)}';
+
+    return TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  String _formatReais(int value) {
+    final characters = value.toString().split('').reversed.toList();
+    final groups = <String>[];
+
+    for (var index = 0; index < characters.length; index += 3) {
+      final end = (index + 3).clamp(0, characters.length);
+      groups.add(characters.sublist(index, end).reversed.join());
+    }
+
+    return groups.reversed.join('.');
   }
 }
 

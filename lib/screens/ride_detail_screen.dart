@@ -223,13 +223,11 @@ class _BriefingGrid extends StatelessWidget {
         children: [
           _BriefRow(label: 'saída', value: ride.departureSummary),
           _BriefRow(label: 'Briefing', value: ride.briefing),
-          _BriefRow(label: 'Volta', value: ride.returnPlan),
           _BriefRow(
             label: 'Distância',
             value: '${ride.distanceKm} km · ida e volta',
           ),
           _BriefRow(label: 'Pedágios', value: ride.tolls),
-          const _BriefRow(label: 'Antes de sair', child: _ChecklistValue()),
         ],
       ),
     );
@@ -237,73 +235,28 @@ class _BriefingGrid extends StatelessWidget {
 }
 
 class _BriefRow extends StatelessWidget {
-  const _BriefRow({required this.label, this.value, this.child})
-    : assert(value != null || child != null);
+  const _BriefRow({required this.label, required this.value});
 
   final String label;
-  final String? value;
-  final Widget? child;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
         children: [
           SizedBox(width: 96, child: SectionLabel(label)),
           Expanded(
-            child:
-                child ??
-                Text(
-                  value!,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// Checklist de "antes de sair", no mesmo formato de pill da tela de feed.
-class _ChecklistValue extends StatelessWidget {
-  const _ChecklistValue();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        _ChecklistPill(icon: FontAwesomeIcons.gasPump, label: 'Abastecer'),
-        _ChecklistPill(icon: FontAwesomeIcons.gaugeHigh, label: 'Calibrar'),
-      ],
-    );
-  }
-}
-
-class _ChecklistPill extends StatelessWidget {
-  const _ChecklistPill({required this.icon, required this.label});
-
-  final FaIconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pill(
-      color: AppColors.inkSoft,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FaIcon(icon, size: 15, color: AppColors.ink),
-          const SizedBox(width: 5),
-          Text(label),
         ],
       ),
     );

@@ -46,7 +46,7 @@ class _HomeShellState extends State<HomeShell> {
         onLocationSelected: _setSelectedLocation,
         onReturnHome: _returnHomeLocation,
       ),
-      const CreateRideScreen(),
+      CreateRideScreen(isActive: _tabIndex == 1),
       const MyRidesScreen(),
       const ProfileScreen(),
     ];
