@@ -15,8 +15,14 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
+  static const FeedLocation _homeLocation = FeedLocation(
+    city: 'Ribeirão Preto, SP',
+    lat: -21.1699,
+    lng: -47.8099,
+  );
+
   int _tabIndex = 0;
-  bool _exploringAway = false;
+  FeedLocation _selectedLocation = _homeLocation;
   double _radiusKm = 100;
 
   @override
@@ -33,10 +39,12 @@ class _HomeShellState extends State<HomeShell> {
   List<Widget> get _pages {
     return [
       FeedScreen(
-        exploringAway: _exploringAway,
+        homeLocation: _homeLocation,
+        selectedLocation: _selectedLocation,
         radiusKm: _radiusKm,
         onRadiusChanged: _setRadius,
-        onLocationChanged: _setExploringAway,
+        onLocationSelected: _setSelectedLocation,
+        onReturnHome: _returnHomeLocation,
       ),
       const CreateRideScreen(),
       const MyRidesScreen(),
@@ -48,7 +56,13 @@ class _HomeShellState extends State<HomeShell> {
 
   void _setRadius(double value) => setState(() => _radiusKm = value);
 
-  void _setExploringAway(bool value) => setState(() => _exploringAway = value);
+  void _setSelectedLocation(FeedLocation value) {
+    setState(() => _selectedLocation = value);
+  }
+
+  void _returnHomeLocation() {
+    setState(() => _selectedLocation = _homeLocation);
+  }
 }
 
 class _BottomTabs extends StatelessWidget {

@@ -27,7 +27,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           _MenuItem(
             title: 'Cidade base',
-            value: 'São Paulo, SP',
+            value: 'Ribeirão Preto, SP',
             icon: FontAwesomeIcons.locationDot,
           ),
           _MenuItem(

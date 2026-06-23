@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import '../data/mock_data.dart';
+import '../models/ride.dart';
 import '../theme/app_theme.dart';
 import 'app_chrome.dart';
 
@@ -144,7 +144,7 @@ class _RideInfo extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          '↑ saída: ${ride.departureName}, ${ride.departureDetail}',
+          '↑ saída: ${ride.departureSummary}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(

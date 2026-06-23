@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import '../data/mock_data.dart';
+import '../models/ride.dart';
+import '../models/ride_user.dart';
+import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
 
@@ -24,7 +26,36 @@ extension RideNavigation on BuildContext {
 }
 
 class _RideDetailScreenState extends State<RideDetailScreen> {
+  final RideApiService _rideApiService = RideApiService();
+
+  late Ride _ride;
   bool _confirmed = false;
+  bool _loadingDetails = false;
+  String? _detailsError;
+  int _requestVersion = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ride = widget.ride;
+    _loadDetails();
+  }
+
+  @override
+  void dispose() {
+    _rideApiService.close();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant RideDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.ride.id != widget.ride.id) {
+      _ride = widget.ride;
+      _loadDetails();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,11 +63,17 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
       body: ScreenFrame(
         child: ListView(
           children: [
-            _DetailTop(ride: widget.ride),
+            _DetailTop(ride: _ride),
             const SizedBox(height: AppGaps.lg),
-            _BriefingGrid(ride: widget.ride),
+            _BriefingGrid(ride: _ride),
             const SizedBox(height: AppGaps.lg),
-            _ConfirmedList(ride: widget.ride, confirmed: _confirmed),
+            _ConfirmedList(
+              ride: _ride,
+              confirmed: _confirmed,
+              loadingDetails: _loadingDetails,
+              detailsError: _detailsError,
+              onRetry: _loadDetails,
+            ),
             const SizedBox(height: 120),
           ],
         ),
@@ -50,11 +87,46 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
   }
 
   Future<void> _copyRideText() async {
-    await Clipboard.setData(ClipboardData(text: widget.ride.shareText));
+    await Clipboard.setData(ClipboardData(text: _ride.shareText));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Lista copiada no formato do WhatsApp.')),
     );
+  }
+
+  Future<void> _loadDetails() async {
+    if (_ride.id <= 0) {
+      return;
+    }
+
+    final requestVersion = ++_requestVersion;
+
+    setState(() {
+      _loadingDetails = true;
+      _detailsError = null;
+    });
+
+    try {
+      final ride = await _rideApiService.fetchRide(_ride.id);
+
+      if (!mounted || requestVersion != _requestVersion) {
+        return;
+      }
+
+      setState(() {
+        _ride = ride;
+        _loadingDetails = false;
+      });
+    } catch (_) {
+      if (!mounted || requestVersion != _requestVersion) {
+        return;
+      }
+
+      setState(() {
+        _loadingDetails = false;
+        _detailsError = 'Não foi possível carregar a lista completa agora.';
+      });
+    }
   }
 
   void _handleJoin() {
@@ -66,8 +138,7 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
       context: context,
       backgroundColor: AppColors.paper,
       showDragHandle: true,
-      builder: (_) =>
-          _LoginSheet(ride: widget.ride, onContinue: _confirmAfterLogin),
+      builder: (_) => _LoginSheet(ride: _ride, onContinue: _confirmAfterLogin),
     );
   }
 
@@ -150,10 +221,7 @@ class _BriefingGrid extends StatelessWidget {
     return CardFrame(
       child: Column(
         children: [
-          _BriefRow(
-            label: 'saída',
-            value: '${ride.departureName}, ${ride.departureDetail}',
-          ),
+          _BriefRow(label: 'saída', value: ride.departureSummary),
           _BriefRow(label: 'Briefing', value: ride.briefing),
           _BriefRow(label: 'Volta', value: ride.returnPlan),
           _BriefRow(
@@ -243,14 +311,24 @@ class _ChecklistPill extends StatelessWidget {
 }
 
 class _ConfirmedList extends StatelessWidget {
-  const _ConfirmedList({required this.ride, required this.confirmed});
+  const _ConfirmedList({
+    required this.ride,
+    required this.confirmed,
+    required this.loadingDetails,
+    required this.detailsError,
+    required this.onRetry,
+  });
 
   final Ride ride;
   final bool confirmed;
+  final bool loadingDetails;
+  final String? detailsError;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final count = ride.riders.length + (confirmed ? 1 : 0);
+    final count = ride.baseConfirmedCount + (confirmed ? 1 : 0);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -275,23 +353,58 @@ class _ConfirmedList extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
+        if (loadingDetails) const LinearProgressIndicator(minHeight: 2),
+        if (detailsError != null && ride.users.isEmpty)
+          _ConfirmedListMessage(message: detailsError!, onRetry: onRetry),
         if (confirmed)
           const _PersonRow(
             number: '✓',
-            rider: Rider(initials: 'VC', name: 'Você', motorcycle: 'sua moto'),
+            user: RideUser(
+              id: 0,
+              name: 'Você',
+              motorcycleSnapshot: 'sua moto',
+              organizer: false,
+            ),
           ),
-        for (var index = 0; index < ride.riders.length; index++)
-          _PersonRow(number: '${index + 1}', rider: ride.riders[index]),
+        for (var index = 0; index < ride.users.length; index++)
+          _PersonRow(number: '${index + 1}', user: ride.users[index]),
       ],
     );
   }
 }
 
+class _ConfirmedListMessage extends StatelessWidget {
+  const _ConfirmedListMessage({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return CardFrame(
+      child: Column(
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton(
+            onPressed: onRetry,
+            child: const Text('Tentar novamente'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PersonRow extends StatelessWidget {
-  const _PersonRow({required this.number, required this.rider});
+  const _PersonRow({required this.number, required this.user});
 
   final String number;
-  final Rider rider;
+  final RideUser user;
 
   @override
   Widget build(BuildContext context) {
@@ -302,11 +415,11 @@ class _PersonRow extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w900),
       ),
       title: Text(
-        rider.name,
+        user.name,
         style: const TextStyle(fontWeight: FontWeight.w900),
       ),
-      subtitle: Text(rider.motorcycle),
-      trailing: InitialsAvatar(rider.initials),
+      subtitle: Text(user.motorcycleSnapshot ?? 'moto não informada'),
+      trailing: InitialsAvatar(user.initials),
     );
   }
 }

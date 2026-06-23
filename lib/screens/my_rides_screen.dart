@@ -1,13 +1,74 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_data.dart';
+import '../models/ride.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
 import '../widgets/ride_card.dart';
 import 'ride_detail_screen.dart';
 
+const _upcomingRides = [
+  Ride(
+    id: -1,
+    title: 'Campos do Jordão',
+    destination: 'Campos do Jordão',
+    departureName: 'Posto Graal',
+    departureDetail: 'Marginal Tietê, SP',
+    time: '09:30',
+    weekday: 'Sáb',
+    date: '27/06',
+    fullDate: '27/06 sábado',
+    distanceKm: 115,
+    confirmedCount: 14,
+    users: [],
+    hot: true,
+    canceled: false,
+    briefing: '09:00',
+    returnPlan: 'Livre',
+    tolls: 'R\$ 14,20',
+  ),
+  Ride(
+    id: -2,
+    title: 'Santos · orla',
+    destination: 'Santos · orla',
+    departureName: 'Shell',
+    departureDetail: 'Av. dos Bandeirantes',
+    time: '07:00',
+    weekday: 'Dom',
+    date: '28/06',
+    fullDate: '28/06 domingo',
+    distanceKm: 144,
+    confirmedCount: 6,
+    users: [],
+    hot: false,
+    canceled: false,
+    briefing: '09:00',
+    returnPlan: 'Livre',
+    tolls: 'R\$ 22,40',
+  ),
+  Ride(
+    id: -3,
+    title: 'Serra do Rio do Rastro',
+    destination: 'Serra do Rio do Rastro',
+    departureName: 'Posto Trevo',
+    departureDetail: 'Anchieta',
+    time: '08:15',
+    weekday: 'Sáb',
+    date: '04/07',
+    fullDate: '04/07 sábado',
+    distanceKm: 92,
+    confirmedCount: 3,
+    users: [],
+    hot: false,
+    canceled: false,
+    briefing: '09:00',
+    returnPlan: 'Livre',
+    tolls: 'sem pedágio',
+  ),
+];
+
 const _pastRides = [
   Ride(
+    id: -4,
     title: 'Monte Verde',
     destination: 'Monte Verde',
     departureName: 'Posto Graal',
@@ -18,9 +79,15 @@ const _pastRides = [
     fullDate: '31/05 sábado',
     distanceKm: 168,
     confirmedCount: 9,
-    riders: MockData.riders,
+    users: [],
+    hot: false,
+    canceled: false,
+    briefing: '09:00',
+    returnPlan: 'Livre',
+    tolls: 'R\$ 14,20',
   ),
   Ride(
+    id: -5,
     title: 'Guarujá',
     destination: 'Guarujá',
     departureName: 'Cancelado',
@@ -31,8 +98,12 @@ const _pastRides = [
     fullDate: '17/05 sábado',
     distanceKm: 96,
     confirmedCount: 0,
-    riders: MockData.riders,
+    users: [],
+    hot: false,
     canceled: true,
+    briefing: '09:00',
+    returnPlan: 'Livre',
+    tolls: 'R\$ 14,20',
   ),
 ];
 
@@ -60,7 +131,7 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
           const SizedBox(height: AppGaps.lg),
           const SectionLabel('Próximos'),
           const SizedBox(height: AppGaps.xs),
-          for (final ride in MockData.homeRides.take(3))
+          for (final ride in _upcomingRides)
             RideCard(ride: ride, onTap: () => context.openRide(ride)),
           const SizedBox(height: AppGaps.lg),
           const SectionLabel('Já rolaram'),
