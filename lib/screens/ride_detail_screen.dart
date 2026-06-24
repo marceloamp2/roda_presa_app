@@ -220,10 +220,7 @@ class _BriefingGrid extends StatelessWidget {
         children: [
           _BriefRow(label: 'saída', value: ride.departureSummary),
           _BriefRow(label: 'Briefing', value: ride.briefing),
-          _BriefRow(
-            label: 'Distância',
-            value: '${ride.distanceKm} km · ida e volta',
-          ),
+          _BriefRow(label: 'Distância', value: '${ride.distanceKm} km'),
           _BriefRow(label: 'Pedágios', value: ride.tolls),
         ],
       ),

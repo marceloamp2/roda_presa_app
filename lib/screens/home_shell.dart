@@ -26,6 +26,7 @@ class _HomeShellState extends State<HomeShell> {
   int _tabIndex = 0;
   FeedLocation _selectedLocation = _homeLocation;
   double _radiusKm = 100;
+  int _feedRefreshTick = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -44,11 +45,16 @@ class _HomeShellState extends State<HomeShell> {
         homeLocation: _homeLocation,
         selectedLocation: _selectedLocation,
         radiusKm: _radiusKm,
+        feedRefreshTick: _feedRefreshTick,
         onRadiusChanged: _setRadius,
         onLocationSelected: _setSelectedLocation,
         onReturnHome: _returnHomeLocation,
       ),
-      CreateRideScreen(isActive: _tabIndex == 1, onSessionExpired: _showFeed),
+      CreateRideScreen(
+        isActive: _tabIndex == 1,
+        onSessionExpired: _showFeed,
+        onRidePublished: _onRidePublished,
+      ),
       MyRidesScreen(isActive: _tabIndex == 2, onSessionExpired: _showFeed),
       ProfileScreen(onLoggedOut: _showFeed),
     ];
@@ -85,6 +91,13 @@ class _HomeShellState extends State<HomeShell> {
   void _selectTab(int value) => setState(() => _tabIndex = value);
 
   void _showFeed() => _selectTab(0);
+
+  void _onRidePublished() {
+    setState(() {
+      _feedRefreshTick++;
+      _tabIndex = 0;
+    });
+  }
 
   String _loginReason(int tabIndex) {
     return switch (tabIndex) {

@@ -55,7 +55,7 @@ class Ride {
 🚏 Local: $destination
 ⌚ Briefing: $briefing
 ⏰ Saída: $time
-🛣️ Distância: ${distanceKm}km (ida e volta)
+🛣️ Distância: ${distanceKm}km
 📍 Local de partida: $departureName
 💵 Pedágios - $tolls''';
   }

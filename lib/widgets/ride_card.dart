@@ -169,7 +169,7 @@ class _RideInfo extends StatelessWidget {
                     color: AppColors.ink,
                   ),
                   const SizedBox(width: 5),
-                  Text('ida e volta ${ride.distanceKm} km'),
+                  Text('${ride.distanceKm} km'),
                 ],
               ),
             ),

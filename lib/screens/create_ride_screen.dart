@@ -15,11 +15,13 @@ class CreateRideScreen extends StatefulWidget {
   const CreateRideScreen({
     required this.isActive,
     required this.onSessionExpired,
+    required this.onRidePublished,
     super.key,
   });
 
   final bool isActive;
   final VoidCallback onSessionExpired;
+  final VoidCallback onRidePublished;
 
   @override
   State<CreateRideScreen> createState() => _CreateRideScreenState();
@@ -28,6 +30,7 @@ class CreateRideScreen extends StatefulWidget {
 class _CreateRideScreenState extends State<CreateRideScreen> {
   final RideApiService _rideApiService = RideApiService();
   final TextEditingController _tollsController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
 
   DateTime? _selectedDate;
@@ -91,6 +94,13 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
             keyboardType: TextInputType.number,
             inputFormatters: const [_BrazilianCurrencyInputFormatter()],
           ),
+          _TextInputField(
+            label: 'Observações',
+            hintText: 'Opcional',
+            icon: FontAwesomeIcons.noteSticky,
+            controller: _notesController,
+            keyboardType: TextInputType.multiline,
+          ),
           _SuggestedTitle(controller: _titleController),
           const SizedBox(height: AppGaps.lg),
           FilledButton(
@@ -122,6 +132,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   void dispose() {
     _rideApiService.close();
     _tollsController.dispose();
+    _notesController.dispose();
     _titleController.dispose();
     super.dispose();
   }
@@ -133,6 +144,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     _destinationPlace = null;
     _startPlace = null;
     _tollsController.clear();
+    _notesController.clear();
     _titleController.clear();
   }
 
@@ -236,6 +248,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
         startPlace: _startPlace!,
         destinationPlace: _destinationPlace!,
         toll: toll,
+        notes: _notesController.text.trim(),
       );
 
       if (!mounted) {
@@ -247,6 +260,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
         _resetFields();
       });
       AppSnackBar.showSuccess(context, 'Role publicado.');
+      widget.onRidePublished();
     } catch (exception) {
       if (!mounted) {
         return;

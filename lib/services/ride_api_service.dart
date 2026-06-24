@@ -86,6 +86,7 @@ class RideApiService {
     required SelectedPlace destinationPlace,
     String? briefingTime,
     double? toll,
+    String? notes,
   }) async {
     final payload = <String, dynamic>{
       'title': title,
@@ -105,6 +106,10 @@ class RideApiService {
 
     if (toll != null) {
       payload['toll'] = toll;
+    }
+
+    if (notes != null && notes.isNotEmpty) {
+      payload['notes'] = notes;
     }
 
     final response = await _apiClient.post(

@@ -15,6 +15,7 @@ class FeedScreen extends StatefulWidget {
     required this.homeLocation,
     required this.selectedLocation,
     required this.radiusKm,
+    required this.feedRefreshTick,
     required this.onRadiusChanged,
     required this.onLocationSelected,
     required this.onReturnHome,
@@ -24,6 +25,7 @@ class FeedScreen extends StatefulWidget {
   final FeedLocation homeLocation;
   final FeedLocation selectedLocation;
   final double radiusKm;
+  final int feedRefreshTick;
   final ValueChanged<double> onRadiusChanged;
   final ValueChanged<FeedLocation> onLocationSelected;
   final VoidCallback onReturnHome;
@@ -59,7 +61,8 @@ class _FeedScreenState extends State<FeedScreen> {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.selectedLocation != widget.selectedLocation ||
-        oldWidget.radiusKm != widget.radiusKm) {
+        oldWidget.radiusKm != widget.radiusKm ||
+        oldWidget.feedRefreshTick != widget.feedRefreshTick) {
       _loadRides();
     }
   }
