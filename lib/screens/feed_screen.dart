@@ -290,7 +290,7 @@ class _RadiusControlState extends State<_RadiusControl> {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.paper2,
+        color: AppColors.paperSoft,
         borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Padding(

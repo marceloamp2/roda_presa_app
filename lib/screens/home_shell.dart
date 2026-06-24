@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../auth/auth_scope.dart';
 import '../theme/app_theme.dart';
 import 'create_ride_screen.dart';
 import 'feed_screen.dart';
+import 'login_screen.dart';
 import 'my_rides_screen.dart';
 import 'profile_screen.dart';
 
@@ -46,13 +48,52 @@ class _HomeShellState extends State<HomeShell> {
         onLocationSelected: _setSelectedLocation,
         onReturnHome: _returnHomeLocation,
       ),
-      CreateRideScreen(isActive: _tabIndex == 1),
-      const MyRidesScreen(),
-      const ProfileScreen(),
+      CreateRideScreen(isActive: _tabIndex == 1, onSessionExpired: _showFeed),
+      MyRidesScreen(isActive: _tabIndex == 2, onSessionExpired: _showFeed),
+      ProfileScreen(onLoggedOut: _showFeed),
     ];
   }
 
-  void _setTab(int value) => setState(() => _tabIndex = value);
+  Future<void> _setTab(int value) async {
+    if (value == 0) {
+      _selectTab(value);
+      return;
+    }
+
+    final auth = AuthScope.of(context);
+    if (auth.isAuthenticated) {
+      _selectTab(value);
+      return;
+    }
+
+    final loggedIn = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => LoginScreen(
+          reason: _loginReason(value),
+          onGooglePressed: auth.signInWithGoogle,
+        ),
+      ),
+    );
+
+    if (!mounted || loggedIn != true) {
+      return;
+    }
+
+    _selectTab(value);
+  }
+
+  void _selectTab(int value) => setState(() => _tabIndex = value);
+
+  void _showFeed() => _selectTab(0);
+
+  String _loginReason(int tabIndex) {
+    return switch (tabIndex) {
+      1 => 'Entra pra criar seu role e entrar na lista como organizador.',
+      2 => 'Entra pra ver os roles que você confirmou ou organizou.',
+      3 => 'Entra pra ver seu perfil, moto e cidade base.',
+      _ => 'Entra pra continuar no Roda Presa.',
+    };
+  }
 
   void _setRadius(double value) => setState(() => _radiusKm = value);
 
@@ -93,7 +134,7 @@ class _BottomTabs extends StatelessWidget {
         onDestinationSelected: onTabSelected,
         height: 76,
         backgroundColor: AppColors.paper,
-        indicatorColor: AppColors.paper2,
+        indicatorColor: AppColors.paperSoft,
         destinations: const [
           NavigationDestination(
             icon: FaIcon(FontAwesomeIcons.compass),

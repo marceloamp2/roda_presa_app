@@ -469,7 +469,7 @@ class _SmallRideTicket extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.paper2,
+        color: AppColors.paperSoft,
         borderRadius: BorderRadius.circular(AppRadius.field),
       ),
       child: Padding(

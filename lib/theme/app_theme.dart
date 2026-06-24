@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   static const paper = Color(0xFFFAFAF7);
-  static const paper2 = Color(0xFFF2F0E9);
+  static const paperSoft = Color(0xFFF2F0E9);
   static const ink = Color(0xFF16181D);
   static const inkMedium = Color(0xFF3F4248);
   static const orange = Color(0xFFFF5A1F);
@@ -104,7 +104,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.paper2,
+        fillColor: AppColors.paperSoft,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide.none,

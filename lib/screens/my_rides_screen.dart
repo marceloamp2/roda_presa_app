@@ -1,119 +1,66 @@
 import 'package:flutter/material.dart';
 
+import '../auth/auth_scope.dart';
+import '../models/my_rides.dart';
 import '../models/ride.dart';
+import '../services/api_exception.dart';
+import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
 import '../widgets/ride_card.dart';
 import 'ride_detail_screen.dart';
 
-const _upcomingRides = [
-  Ride(
-    id: -1,
-    title: 'Campos do Jordão',
-    destination: 'Campos do Jordão',
-    departureName: 'Posto Graal',
-    departureDetail: 'Marginal Tietê, SP',
-    time: '09:30',
-    weekday: 'Sáb',
-    date: '27/06',
-    fullDate: '27/06 sábado',
-    distanceKm: 115,
-    confirmedCount: 14,
-    users: [],
-    hot: true,
-    canceled: false,
-    briefing: '09:00',
-    tolls: 'R\$ 14,20',
-  ),
-  Ride(
-    id: -2,
-    title: 'Santos · orla',
-    destination: 'Santos · orla',
-    departureName: 'Shell',
-    departureDetail: 'Av. dos Bandeirantes',
-    time: '07:00',
-    weekday: 'Dom',
-    date: '28/06',
-    fullDate: '28/06 domingo',
-    distanceKm: 144,
-    confirmedCount: 6,
-    users: [],
-    hot: false,
-    canceled: false,
-    briefing: '09:00',
-    tolls: 'R\$ 22,40',
-  ),
-  Ride(
-    id: -3,
-    title: 'Serra do Rio do Rastro',
-    destination: 'Serra do Rio do Rastro',
-    departureName: 'Posto Trevo',
-    departureDetail: 'Anchieta',
-    time: '08:15',
-    weekday: 'Sáb',
-    date: '04/07',
-    fullDate: '04/07 sábado',
-    distanceKm: 92,
-    confirmedCount: 3,
-    users: [],
-    hot: false,
-    canceled: false,
-    briefing: '09:00',
-    tolls: 'sem pedágio',
-  ),
-];
-
-const _pastRides = [
-  Ride(
-    id: -4,
-    title: 'Monte Verde',
-    destination: 'Monte Verde',
-    departureName: 'Posto Graal',
-    departureDetail: 'Rodovia Fernão Dias',
-    time: '08:00',
-    weekday: 'Sáb',
-    date: '31/05',
-    fullDate: '31/05 sábado',
-    distanceKm: 168,
-    confirmedCount: 9,
-    users: [],
-    hot: false,
-    canceled: false,
-    briefing: '09:00',
-    tolls: 'R\$ 14,20',
-  ),
-  Ride(
-    id: -5,
-    title: 'Guarujá',
-    destination: 'Guarujá',
-    departureName: 'Cancelado',
-    departureDetail: 'pelo organizador',
-    time: '07:30',
-    weekday: 'Sáb',
-    date: '17/05',
-    fullDate: '17/05 sábado',
-    distanceKm: 96,
-    confirmedCount: 0,
-    users: [],
-    hot: false,
-    canceled: true,
-    briefing: '09:00',
-    tolls: 'R\$ 14,20',
-  ),
-];
-
 class MyRidesScreen extends StatefulWidget {
-  const MyRidesScreen({super.key});
+  const MyRidesScreen({
+    required this.isActive,
+    required this.onSessionExpired,
+    super.key,
+  });
+
+  final bool isActive;
+  final VoidCallback onSessionExpired;
 
   @override
   State<MyRidesScreen> createState() => _MyRidesScreenState();
 }
 
 class _MyRidesScreenState extends State<MyRidesScreen> {
+  final RideApiService _rideApiService = RideApiService();
+
   int _segment = 0;
+  bool _loading = false;
+  String? _errorMessage;
+  String? _loadedToken;
+  MyRides? _rides;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (widget.isActive) {
+      _loadIfNeeded();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant MyRidesScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (!oldWidget.isActive && widget.isActive) {
+      _loadIfNeeded();
+    }
+  }
+
+  @override
+  void dispose() {
+    _rideApiService.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final rides = _selectedRides;
+
     return ScreenFrame(
       child: ListView(
         children: [
@@ -124,19 +71,103 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
             onChanged: (value) => setState(() => _segment = value),
           ),
           const SizedBox(height: AppGaps.lg),
-          const SectionLabel('Próximos'),
+          SectionLabel(_segment == 0 ? 'Vou nessas' : 'Organizo'),
           const SizedBox(height: AppGaps.xs),
-          for (final ride in _upcomingRides)
-            RideCard(ride: ride, onTap: () => context.openRide(ride)),
-          const SizedBox(height: AppGaps.lg),
-          const SectionLabel('Já rolaram'),
-          const SizedBox(height: AppGaps.xs),
-          for (final ride in _pastRides)
-            RideCard(ride: ride, onTap: () => context.openRide(ride)),
+          if (_loading) const _LoadingState(),
+          if (!_loading && _errorMessage != null)
+            _MessageState(message: _errorMessage!, onRetry: _reload),
+          if (!_loading && _errorMessage == null && rides.isEmpty)
+            const _EmptyState(),
+          if (!_loading && _errorMessage == null)
+            for (final ride in rides)
+              RideCard(ride: ride, onTap: () => context.openRide(ride)),
           const SizedBox(height: AppGaps.bottom),
         ],
       ),
     );
+  }
+
+  List<Ride> get _selectedRides {
+    final rides = _rides;
+
+    if (rides == null) {
+      return const [];
+    }
+
+    return _segment == 0 ? rides.confirmed : rides.organized;
+  }
+
+  void _loadIfNeeded() {
+    if (_loading) {
+      return;
+    }
+
+    _load(AuthScope.of(context).token);
+  }
+
+  Future<void> _reload() async {
+    await _load(AuthScope.of(context).token, force: true);
+  }
+
+  Future<void> _load(String? token, {bool force = false}) async {
+    if (token == null || token.isEmpty) {
+      setState(() {
+        _loading = false;
+        _errorMessage = 'Entre novamente para ver seus roles.';
+        _rides = null;
+        _loadedToken = null;
+      });
+      return;
+    }
+
+    if (!force && token == _loadedToken && _rides != null) {
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final rides = await _rideApiService.fetchMyRides(authToken: token);
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _rides = rides;
+        _loadedToken = token;
+        _loading = false;
+      });
+    } catch (exception) {
+      if (!mounted) {
+        return;
+      }
+
+      if (await AuthScope.of(context).handleApiException(exception)) {
+        widget.onSessionExpired();
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _loading = false;
+        _errorMessage = _errorFor(exception);
+      });
+    }
+  }
+
+  String _errorFor(Object exception) {
+    if (exception is ApiException) {
+      return exception.message;
+    }
+
+    return 'Não foi possível carregar seus roles agora.';
   }
 }
 
@@ -161,7 +192,7 @@ class _SegmentedControl extends StatelessWidget {
             return AppColors.orange;
           }
 
-          return AppColors.paper2;
+          return AppColors.paperSoft;
         }),
         foregroundColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -171,6 +202,48 @@ class _SegmentedControl extends StatelessWidget {
           return AppColors.ink;
         }),
         side: const WidgetStatePropertyAll(BorderSide(color: AppColors.paper)),
+      ),
+    );
+  }
+}
+
+class _LoadingState extends StatelessWidget {
+  const _LoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 24),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const CardFrame(child: Text('Nenhum role por aqui ainda.'));
+  }
+}
+
+class _MessageState extends StatelessWidget {
+  const _MessageState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return CardFrame(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(message),
+          const SizedBox(height: AppGaps.sm),
+          TextButton(onPressed: onRetry, child: const Text('tentar de novo')),
+        ],
       ),
     );
   }

@@ -1,136 +1,160 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../auth/auth_scope.dart';
+import '../models/app_user.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({required this.onLoggedOut, super.key});
+
+  final VoidCallback onLoggedOut;
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _loggingOut = false;
 
   @override
   Widget build(BuildContext context) {
+    final user = AuthScope.of(context).user;
+
     return ScreenFrame(
       child: ListView(
-        children: const [
-          TwoToneTitle(prefix: 'Meu', highlight: 'Perfil'),
-          SizedBox(height: AppGaps.md),
-          _ProfileHeader(),
-          SizedBox(height: AppGaps.lg),
-          _StatsRow(),
-          SizedBox(height: AppGaps.section),
-          SectionLabel('Conta'),
-          SizedBox(height: AppGaps.xs),
-          _MenuItem(
-            title: 'Minha moto',
-            value: 'Mirage 250',
-            icon: FontAwesomeIcons.motorcycle,
-          ),
-          _MenuItem(
-            title: 'Cidade base',
-            value: 'Ribeirão Preto, SP',
-            icon: FontAwesomeIcons.locationDot,
-          ),
-          _MenuItem(
-            title: 'Notificações',
-            value: 'Roles novos perto · ligado',
-            icon: FontAwesomeIcons.bell,
-          ),
-          _MenuItem(
-            title: 'Privacidade',
-            value: 'Perfil visível na lista',
-            icon: FontAwesomeIcons.lock,
-          ),
-          SizedBox(height: AppGaps.bottom),
+        children: [
+          const TwoToneTitle(prefix: 'Meu', highlight: 'Perfil'),
+          const SizedBox(height: AppGaps.md),
+          if (user == null)
+            const _MissingUserState()
+          else ...[
+            _ProfileHeader(
+              user: user,
+              isLoggingOut: _loggingOut,
+              onLogout: _logout,
+            ),
+            const SizedBox(height: AppGaps.section),
+            const SectionLabel('Conta'),
+            const SizedBox(height: AppGaps.xs),
+            _MenuItem(
+              title: 'Minha moto',
+              value: user.motorcycle ?? 'Não informado',
+              icon: FontAwesomeIcons.motorcycle,
+            ),
+            _MenuItem(
+              title: 'Cidade base',
+              value: user.cityAndState,
+              icon: FontAwesomeIcons.locationDot,
+            ),
+          ],
+          const SizedBox(height: AppGaps.bottom),
         ],
       ),
     );
   }
+
+  Future<void> _logout() async {
+    if (_loggingOut) {
+      return;
+    }
+
+    setState(() => _loggingOut = true);
+
+    await AuthScope.of(context).logout();
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() => _loggingOut = false);
+    widget.onLoggedOut();
+  }
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader();
+  const _ProfileHeader({
+    required this.user,
+    required this.isLoggingOut,
+    required this.onLogout,
+  });
+
+  final AppUser user;
+  final bool isLoggingOut;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const InitialsAvatar('MA', size: 72),
+        _ProfileAvatar(user: user),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Marcelo',
+                user.name,
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
               const SizedBox(height: 6),
-              const Text(
-                'marceloamp2@gmail.com',
-                style: TextStyle(color: AppColors.asphalt),
+              Text(
+                user.email,
+                style: const TextStyle(color: AppColors.asphalt),
               ),
               const SizedBox(height: 12),
-              const Pill(
+              Pill(
                 color: AppColors.ink,
                 foreground: AppColors.paper,
-                child: Text('Mirage 250'),
+                child: Text(user.motorcycle ?? 'Moto não informada'),
               ),
             ],
           ),
         ),
-        TextButton(onPressed: null, child: Text('sair')),
+        TextButton(
+          onPressed: isLoggingOut ? null : onLogout,
+          child: isLoggingOut
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('sair'),
+        ),
       ],
     );
   }
 }
 
-class _StatsRow extends StatelessWidget {
-  const _StatsRow();
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({required this.user});
+
+  final AppUser user;
 
   @override
   Widget build(BuildContext context) {
-    return const CardFrame(
-      child: Row(
-        children: [
-          Expanded(
-            child: _Stat(number: '23', label: 'roles feitos'),
-          ),
-          Expanded(
-            child: _Stat(number: '7', label: 'organizados'),
-          ),
-          Expanded(
-            child: _Stat(number: '2', label: 'próximos'),
-          ),
-        ],
-      ),
+    final photoUrl = user.photoUrl;
+
+    if (photoUrl == null) {
+      return InitialsAvatar(user.initials, size: 72);
+    }
+
+    return CircleAvatar(
+      radius: 36,
+      backgroundColor: AppColors.ink,
+      backgroundImage: NetworkImage(photoUrl),
     );
   }
 }
 
-class _Stat extends StatelessWidget {
-  const _Stat({required this.number, required this.label});
-
-  final String number;
-  final String label;
+class _MissingUserState extends StatelessWidget {
+  const _MissingUserState();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          number,
-          style: Theme.of(
-            context,
-          ).textTheme.headlineLarge?.copyWith(fontSize: 30, height: 0.95),
-        ),
-        Text(
-          label,
-          style: const TextStyle(color: AppColors.asphalt, fontSize: 12),
-        ),
-      ],
-    );
+    return const CardFrame(child: Text('Entre novamente para ver seu perfil.'));
   }
 }
 
@@ -158,7 +182,6 @@ class _MenuItem extends StatelessWidget {
         leading: FaIcon(icon, color: AppColors.orange),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
         subtitle: Text(value),
-        trailing: const FaIcon(FontAwesomeIcons.chevronRight, size: 16),
       ),
     );
   }

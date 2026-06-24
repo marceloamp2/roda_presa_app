@@ -36,7 +36,7 @@ class PlaceSearchField extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.paper2,
+        color: AppColors.paperSoft,
         borderRadius: BorderRadius.circular(AppRadius.field),
       ),
       child: ListTile(

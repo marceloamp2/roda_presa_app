@@ -175,7 +175,7 @@ class Pill extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: color ?? AppColors.paper2,
+        color: color ?? AppColors.paperSoft,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Padding(
@@ -220,7 +220,6 @@ class TwoToneTitle extends StatelessWidget {
   }
 }
 
-// Container de conteúdo padrão (paper2 + raio de card + padding de 18).
 class CardFrame extends StatelessWidget {
   const CardFrame({required this.child, super.key});
 
@@ -230,7 +229,7 @@ class CardFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.paper2,
+        color: AppColors.paperSoft,
         borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Padding(padding: const EdgeInsets.all(18), child: child),

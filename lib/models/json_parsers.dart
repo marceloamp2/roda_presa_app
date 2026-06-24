@@ -33,3 +33,31 @@ double asDouble(dynamic value) {
 
   throw const FormatException('Invalid decimal value.');
 }
+
+Map<String, dynamic> asJsonObject(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+
+  if (value is Map) {
+    return value.map((key, item) => MapEntry(key.toString(), item));
+  }
+
+  throw const FormatException('Invalid JSON object.');
+}
+
+String asRequiredString(dynamic value) {
+  if (value is String && value.trim().isNotEmpty) {
+    return value;
+  }
+
+  throw const FormatException('Missing required string value.');
+}
+
+String? asNullableString(dynamic value) {
+  if (value is! String || value.trim().isEmpty) {
+    return null;
+  }
+
+  return value;
+}

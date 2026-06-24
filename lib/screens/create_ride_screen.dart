@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../auth/auth_scope.dart';
 import '../models/place.dart';
+import '../services/api_exception.dart';
 import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
 import '../widgets/place_search_field.dart';
 
 class CreateRideScreen extends StatefulWidget {
-  const CreateRideScreen({required this.isActive, super.key});
+  const CreateRideScreen({
+    required this.isActive,
+    required this.onSessionExpired,
+    super.key,
+  });
 
   final bool isActive;
+  final VoidCallback onSessionExpired;
 
   @override
   State<CreateRideScreen> createState() => _CreateRideScreenState();
@@ -205,10 +212,20 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
       return;
     }
 
+    final auth = AuthScope.of(context);
+    final authToken = auth.token;
+
+    if (authToken == null || authToken.isEmpty) {
+      _showMessage('Entre novamente para publicar o role.');
+      widget.onSessionExpired();
+      return;
+    }
+
     setState(() => _publishing = true);
 
     try {
       await _rideApiService.createRide(
+        authToken: authToken,
         title: _titleController.text.trim(),
         rideDate: _formatDateForApi(_selectedDate!),
         briefingTime: _selectedBriefingTime == null
@@ -235,6 +252,16 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
       }
 
       setState(() => _publishing = false);
+
+      if (await auth.handleApiException(exception)) {
+        widget.onSessionExpired();
+        return;
+      }
+
+      if (!mounted) {
+        return;
+      }
+
       _showMessage(_publishErrorMessage(exception));
     }
   }
@@ -294,7 +321,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   }
 
   String _publishErrorMessage(Object exception) {
-    if (exception is RideApiException) {
+    if (exception is ApiException) {
       return switch (exception.statusCode) {
         422 => 'Confira os dados do role antes de publicar.',
         429 => 'Muitas tentativas. Aguarde um pouco e tente novamente.',
@@ -333,7 +360,7 @@ class _SelectorField extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: AppColors.paper2,
+        color: AppColors.paperSoft,
         borderRadius: BorderRadius.circular(AppRadius.field),
       ),
       child: ListTile(
@@ -383,7 +410,7 @@ class _TextInputField extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
       decoration: BoxDecoration(
-        color: AppColors.paper2,
+        color: AppColors.paperSoft,
         borderRadius: BorderRadius.circular(AppRadius.field),
       ),
       child: Row(
@@ -456,7 +483,8 @@ class _BrazilianCurrencyInputFormatter extends TextInputFormatter {
     final centsValue = int.parse(digits);
     final reais = centsValue ~/ 100;
     final cents = centsValue % 100;
-    final text = 'R\$ ${_formatReais(reais)},${AppDateStrings.twoDigits(cents)}';
+    final text =
+        'R\$ ${_formatReais(reais)},${AppDateStrings.twoDigits(cents)}';
 
     return TextEditingValue(
       text: text,
