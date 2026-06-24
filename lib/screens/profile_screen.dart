@@ -3,8 +3,13 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../auth/auth_scope.dart';
 import '../models/app_user.dart';
+import '../models/city.dart';
+import '../services/api_exception.dart';
+import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
+import '../widgets/app_snack_bar.dart';
+import '../widgets/city_search_sheet.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({required this.onLoggedOut, super.key});
@@ -15,12 +20,24 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
+enum _ProfileSaveTarget { motorcycle, city }
+
 class _ProfileScreenState extends State<ProfileScreen> {
+  final RideApiService _rideApiService = RideApiService();
+
   bool _loggingOut = false;
+  _ProfileSaveTarget? _savingProfileTarget;
+
+  @override
+  void dispose() {
+    _rideApiService.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = AuthScope.of(context).user;
+    final actionsEnabled = !_loggingOut && _savingProfileTarget == null;
 
     return ScreenFrame(
       child: ListView(
@@ -42,17 +59,126 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: 'Minha moto',
               value: user.motorcycle ?? 'Não informado',
               icon: FontAwesomeIcons.motorcycle,
+              isLoading: _savingProfileTarget == _ProfileSaveTarget.motorcycle,
+              onTap: actionsEnabled ? () => _editMotorcycle(user) : null,
             ),
             _MenuItem(
-              title: 'Cidade base',
+              title: 'Cidade',
               value: user.cityAndState,
               icon: FontAwesomeIcons.locationDot,
+              isLoading: _savingProfileTarget == _ProfileSaveTarget.city,
+              onTap: actionsEnabled ? _openCitySheet : null,
             ),
           ],
           const SizedBox(height: AppGaps.bottom),
         ],
       ),
     );
+  }
+
+  Future<void> _editMotorcycle(AppUser user) async {
+    final result = await showDialog<String>(
+      context: context,
+      builder: (_) => _MotorcycleDialog(initialValue: user.motorcycle ?? ''),
+    );
+
+    if (result == null) {
+      return;
+    }
+
+    final trimmed = result.trim();
+
+    await _saveProfile(
+      target: _ProfileSaveTarget.motorcycle,
+      updateMotorcycle: true,
+      motorcycle: trimmed.isEmpty ? null : trimmed,
+      successMessage: 'Moto atualizada.',
+    );
+  }
+
+  void _openCitySheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.paper,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => CitySearchSheet(
+        rideApiService: _rideApiService,
+        title: 'Cidade',
+        onCitySelected: _saveCity,
+      ),
+    );
+  }
+
+  void _saveCity(City city) {
+    _saveProfile(
+      target: _ProfileSaveTarget.city,
+      cityId: city.id,
+      successMessage: 'Cidade atualizada.',
+    );
+  }
+
+  Future<void> _saveProfile({
+    required _ProfileSaveTarget target,
+    bool updateMotorcycle = false,
+    String? motorcycle,
+    int? cityId,
+    required String successMessage,
+  }) async {
+    if (_savingProfileTarget != null) {
+      return;
+    }
+
+    setState(() => _savingProfileTarget = target);
+
+    final auth = AuthScope.of(context);
+
+    try {
+      await auth.updateProfile(
+        updateMotorcycle: updateMotorcycle,
+        motorcycle: motorcycle,
+        cityId: cityId,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      AppSnackBar.showSuccess(context, successMessage);
+    } catch (exception) {
+      final loggedOut = await auth.handleApiException(exception);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (loggedOut) {
+        widget.onLoggedOut();
+        return;
+      }
+
+      AppSnackBar.showError(
+        context,
+        _profileErrorMessage(exception),
+        exception: exception,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _savingProfileTarget = null);
+      }
+    }
+  }
+
+  String _profileErrorMessage(Object exception) {
+    if (exception is ApiException) {
+      if (exception.statusCode == 422) {
+        return 'Confira os dados do perfil.';
+      }
+
+      return exception.message;
+    }
+
+    return 'Não foi possível atualizar seu perfil agora.';
   }
 
   Future<void> _logout() async {
@@ -70,6 +196,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() => _loggingOut = false);
     widget.onLoggedOut();
+  }
+}
+
+class _MotorcycleDialog extends StatefulWidget {
+  const _MotorcycleDialog({required this.initialValue});
+
+  final String initialValue;
+
+  @override
+  State<_MotorcycleDialog> createState() => _MotorcycleDialogState();
+}
+
+class _MotorcycleDialogState extends State<_MotorcycleDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Minha moto'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        decoration: const InputDecoration(hintText: 'Ex.: Yamaha MT-07'),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('Salvar')),
+      ],
+    );
+  }
+
+  void _submit() {
+    Navigator.pop(context, _controller.text);
   }
 }
 
@@ -163,11 +340,15 @@ class _MenuItem extends StatelessWidget {
     required this.title,
     required this.value,
     required this.icon,
+    this.onTap,
+    this.isLoading = false,
   });
 
   final String title;
   final String value;
   final FaIconData icon;
+  final VoidCallback? onTap;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -179,9 +360,22 @@ class _MenuItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.field),
       ),
       child: ListTile(
+        onTap: onTap,
+        enabled: onTap != null,
         leading: FaIcon(icon, color: AppColors.orange),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
         subtitle: Text(value),
+        trailing: isLoading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const FaIcon(
+                FontAwesomeIcons.penToSquare,
+                size: 16,
+                color: AppColors.asphalt,
+              ),
       ),
     );
   }

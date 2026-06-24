@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
@@ -8,8 +6,8 @@ import '../models/ride.dart';
 import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
+import '../widgets/city_search_sheet.dart';
 import '../widgets/ride_card.dart';
-import '../widgets/search_sheet_status.dart';
 import 'ride_detail_screen.dart';
 
 class FeedScreen extends StatefulWidget {
@@ -160,7 +158,7 @@ class _FeedScreenState extends State<FeedScreen> {
       backgroundColor: AppColors.paper,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => _LocationSheet(
+      builder: (_) => CitySearchSheet(
         rideApiService: _rideApiService,
         onCitySelected: _selectCity,
       ),
@@ -435,229 +433,6 @@ class _StatusCard extends StatelessWidget {
         height: 120,
         child: Center(child: child),
       ),
-    );
-  }
-}
-
-class _LocationSheet extends StatefulWidget {
-  const _LocationSheet({
-    required this.rideApiService,
-    required this.onCitySelected,
-  });
-
-  final RideApiService rideApiService;
-  final ValueChanged<City> onCitySelected;
-
-  @override
-  State<_LocationSheet> createState() => _LocationSheetState();
-}
-
-class _LocationSheetState extends State<_LocationSheet> {
-  static const int _minimumSearchLength = 2;
-  static const int _resultLimit = 20;
-  static const Duration _debounceDuration = Duration(milliseconds: 400);
-
-  final TextEditingController _controller = TextEditingController();
-
-  Timer? _debounce;
-  List<City> _cities = const [];
-  bool _loading = false;
-  String? _errorMessage;
-  bool _hasSearched = false;
-  int _requestVersion = 0;
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final viewInsets = MediaQuery.viewInsetsOf(context);
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.72;
-
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 150),
-      curve: Curves.easeOut,
-      padding: EdgeInsets.only(bottom: viewInsets.bottom),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxHeight: maxHeight),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Buscar cidade',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _controller,
-                  autofocus: true,
-                  onChanged: _onSearchChanged,
-                  decoration: const InputDecoration(
-                    prefixIcon: Padding(
-                      padding: EdgeInsets.all(12),
-                      child: FaIcon(FontAwesomeIcons.magnifyingGlass, size: 18),
-                    ),
-                    hintText: 'Digite a cidade',
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const SectionLabel('Resultados'),
-                const SizedBox(height: 8),
-                Flexible(child: _resultContent()),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _resultContent() {
-    if (!_hasSearched) {
-      return const SearchSheetMessage('Digite pelo menos 2 letras da cidade.');
-    }
-
-    if (_loading) {
-      return const SearchSheetMessage.withProgress('Buscando cidades...');
-    }
-
-    if (_errorMessage != null) {
-      return SearchSheetError(message: _errorMessage!, onRetry: _retrySearch);
-    }
-
-    if (_cities.isEmpty) {
-      return const SearchSheetMessage('Nenhuma cidade encontrada.');
-    }
-
-    return ListView.builder(
-      padding: EdgeInsets.zero,
-      shrinkWrap: true,
-      itemCount: _cities.length,
-      itemBuilder: (context, index) {
-        final city = _cities[index];
-
-        return _CityOption(
-          title: city.name,
-          subtitle: city.state,
-          onTap: () => _select(context, city),
-        );
-      },
-    );
-  }
-
-  void _onSearchChanged(String value) {
-    final search = value.trim();
-    final requestVersion = ++_requestVersion;
-    _debounce?.cancel();
-
-    if (search.length < _minimumSearchLength) {
-      _resetSearch();
-      return;
-    }
-
-    _startSearching();
-    _debounce = Timer(
-      _debounceDuration,
-      () => _searchCities(search, requestVersion),
-    );
-  }
-
-  void _startSearching() {
-    setState(() {
-      _cities = const [];
-      _loading = true;
-      _errorMessage = null;
-      _hasSearched = true;
-    });
-  }
-
-  Future<void> _searchCities(String search, int requestVersion) async {
-    if (!mounted) {
-      return;
-    }
-
-    try {
-      final cities = await widget.rideApiService.searchCities(
-        search: search,
-        limit: _resultLimit,
-      );
-
-      if (!mounted || requestVersion != _requestVersion) {
-        return;
-      }
-
-      setState(() {
-        _cities = cities;
-        _loading = false;
-      });
-    } catch (_) {
-      if (!mounted || requestVersion != _requestVersion) {
-        return;
-      }
-
-      setState(() {
-        _cities = const [];
-        _loading = false;
-        _errorMessage = 'Não foi possível buscar cidades agora.';
-      });
-    }
-  }
-
-  void _retrySearch() {
-    final search = _controller.text.trim();
-    if (search.length < _minimumSearchLength) {
-      return;
-    }
-
-    _debounce?.cancel();
-    final requestVersion = ++_requestVersion;
-    _startSearching();
-    _searchCities(search, requestVersion);
-  }
-
-  void _resetSearch() {
-    setState(() {
-      _cities = const [];
-      _loading = false;
-      _errorMessage = null;
-      _hasSearched = false;
-    });
-  }
-
-  void _select(BuildContext context, City city) {
-    widget.onCitySelected(city);
-    Navigator.pop(context);
-  }
-}
-
-class _CityOption extends StatelessWidget {
-  const _CityOption({
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: EdgeInsets.zero,
-      leading: const FaIcon(FontAwesomeIcons.locationDot),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
-      subtitle: Text(subtitle),
     );
   }
 }

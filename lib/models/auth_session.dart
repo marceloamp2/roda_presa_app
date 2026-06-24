@@ -8,15 +8,15 @@ class AuthSession {
   final String token;
 
   factory AuthSession.fromJson(Map<String, dynamic> json) {
-    final token = json['token'];
-    final userData = json['data'];
+    final data = asJsonObject(json['data']);
+    final token = data['token'];
 
     if (token is! String || token.trim().isEmpty) {
       throw const FormatException('Resposta de login inválida.');
     }
 
     return AuthSession(
-      user: AppUser.fromJson(asJsonObject(userData)),
+      user: AppUser.fromJson(data),
       token: token,
     );
   }

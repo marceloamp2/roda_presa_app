@@ -8,6 +8,7 @@ import '../services/api_exception.dart';
 import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
+import '../widgets/app_snack_bar.dart';
 import '../widgets/place_search_field.dart';
 
 class CreateRideScreen extends StatefulWidget {
@@ -202,13 +203,13 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   Future<void> _publish() async {
     final validationMessage = _validationMessage();
     if (validationMessage != null) {
-      _showMessage(validationMessage);
+      AppSnackBar.showError(context, validationMessage);
       return;
     }
 
     final toll = _parseToll();
     if (toll == null && _tollsController.text.trim().isNotEmpty) {
-      _showMessage('Informe o pedágio como valor em reais.');
+      AppSnackBar.showError(context, 'Informe o pedágio como valor em reais.');
       return;
     }
 
@@ -216,7 +217,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     final authToken = auth.token;
 
     if (authToken == null || authToken.isEmpty) {
-      _showMessage('Entre novamente para publicar o role.');
+      AppSnackBar.showError(context, 'Entre novamente para publicar o role.');
       widget.onSessionExpired();
       return;
     }
@@ -245,7 +246,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
         _publishing = false;
         _resetFields();
       });
-      _showMessage('Role publicado.');
+      AppSnackBar.showSuccess(context, 'Role publicado.');
     } catch (exception) {
       if (!mounted) {
         return;
@@ -262,7 +263,11 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
         return;
       }
 
-      _showMessage(_publishErrorMessage(exception));
+      AppSnackBar.showError(
+        context,
+        _publishErrorMessage(exception),
+        exception: exception,
+      );
     }
   }
 
@@ -331,12 +336,6 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     }
 
     return 'Não foi possível publicar o role agora.';
-  }
-
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

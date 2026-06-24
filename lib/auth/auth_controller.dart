@@ -78,6 +78,28 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  Future<void> updateProfile({
+    bool updateMotorcycle = false,
+    String? motorcycle,
+    int? cityId,
+  }) async {
+    final currentToken = _token;
+
+    if (currentToken == null || currentToken.isEmpty) {
+      throw const ApiException('Entre novamente para atualizar seu perfil.');
+    }
+
+    final updatedUser = await _authApiService.updateProfile(
+      sanctumToken: currentToken,
+      updateMotorcycle: updateMotorcycle,
+      motorcycle: motorcycle,
+      cityId: cityId,
+    );
+
+    _user = updatedUser;
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     final currentToken = _token;
 

@@ -30,6 +30,35 @@ class AuthApiService {
       authToken: sanctumToken,
     );
 
+    return _parseUser(response);
+  }
+
+  Future<AppUser> updateProfile({
+    required String sanctumToken,
+    bool updateMotorcycle = false,
+    String? motorcycle,
+    int? cityId,
+  }) async {
+    final payload = <String, dynamic>{};
+
+    if (updateMotorcycle) {
+      payload['motorcycle'] = motorcycle;
+    }
+
+    if (cityId != null) {
+      payload['city_id'] = cityId;
+    }
+
+    final response = await _apiClient.patch(
+      _apiClient.uri('/auth/me'),
+      payload,
+      authToken: sanctumToken,
+    );
+
+    return _parseUser(response);
+  }
+
+  AppUser _parseUser(http.Response response) {
     try {
       return AppUser.fromJson(
         asJsonObject(_apiClient.decode(response.body)['data']),

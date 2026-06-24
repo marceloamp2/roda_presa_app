@@ -7,6 +7,7 @@ import '../models/ride_user.dart';
 import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
+import '../widgets/app_snack_bar.dart';
 
 class RideDetailScreen extends StatefulWidget {
   const RideDetailScreen({required this.ride, super.key});
@@ -89,9 +90,7 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
   Future<void> _copyRideText() async {
     await Clipboard.setData(ClipboardData(text: _ride.shareText));
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Lista copiada no formato do WhatsApp.')),
-    );
+    AppSnackBar.showSuccess(context, 'Lista copiada no formato do WhatsApp.');
   }
 
   Future<void> _loadDetails() async {
@@ -145,9 +144,7 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
   void _confirmAfterLogin() {
     Navigator.pop(context);
     setState(() => _confirmed = true);
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Você entrou na lista.')));
+    AppSnackBar.showSuccess(context, 'Você entrou na lista.');
   }
 }
 

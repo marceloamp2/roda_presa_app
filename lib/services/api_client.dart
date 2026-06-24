@@ -49,6 +49,21 @@ class ApiClient {
     }, expectedStatusCodes: expectedStatusCodes);
   }
 
+  Future<http.Response> patch(
+    Uri uri,
+    Map<String, dynamic> payload, {
+    String? authToken,
+    List<int> expectedStatusCodes = const [200],
+  }) {
+    return _send(() {
+      return _client.patch(
+        uri,
+        headers: _headers(authToken: authToken, hasBody: true),
+        body: jsonEncode(payload),
+      );
+    }, expectedStatusCodes: expectedStatusCodes);
+  }
+
   Future<http.Response> _send(
     Future<http.Response> Function() request, {
     required List<int> expectedStatusCodes,
@@ -60,6 +75,7 @@ class ApiClient {
         throw ApiException(
           _errorMessage(response),
           statusCode: response.statusCode,
+          fieldErrors: _fieldErrors(response),
         );
       }
 
@@ -119,6 +135,31 @@ class ApiClient {
     }
 
     return 'A API respondeu com ${response.statusCode}.';
+  }
+
+  /// Flattens the per-field validation messages from a 422 body.
+  ///
+  /// The API returns them under `data.errors` as `{ field: [messages] }`; this
+  /// drops the field keys and keeps every message in a single list so the UI
+  /// can show them as a plain list. Returns an empty list when absent.
+  List<String> _fieldErrors(http.Response response) {
+    try {
+      final data = decode(response.body)['data'];
+      final errors = data is Map<String, dynamic> ? data['errors'] : null;
+
+      if (errors is! Map<String, dynamic>) {
+        return const [];
+      }
+
+      return [
+        for (final messages in errors.values)
+          if (messages is List)
+            for (final message in messages)
+              if (message is String && message.isNotEmpty) message,
+      ];
+    } catch (_) {
+      return const [];
+    }
   }
 
   void close() => _client.close();
