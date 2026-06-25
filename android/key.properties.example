@@ -1,0 +1,6 @@
+# Copy this file to android/key.properties and fill it with your upload key data.
+# The real key.properties file and *.jks/*.keystore files are ignored by git.
+storePassword=change-me
+keyPassword=change-me
+keyAlias=upload
+storeFile=app/upload-keystore.jks

@@ -1,4 +1,4 @@
-package com.example.roda_presa_app
+package br.com.rodapresa
 
 import io.flutter.embedding.android.FlutterActivity
 
