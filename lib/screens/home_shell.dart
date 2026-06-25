@@ -7,6 +7,7 @@ import 'create_ride_screen.dart';
 import 'feed_screen.dart';
 import 'login_screen.dart';
 import 'my_rides_screen.dart';
+import 'onboarding_screen.dart';
 import 'profile_screen.dart';
 
 class HomeShell extends StatefulWidget {
@@ -66,26 +67,53 @@ class _HomeShellState extends State<HomeShell> {
       return;
     }
 
-    final auth = AuthScope.of(context);
-    if (auth.isAuthenticated) {
-      _selectTab(value);
+    if (!await _ensureSignedIn(value)) {
       return;
+    }
+
+    final ready = await _ensureProfileReady();
+
+    if (!mounted || !ready) {
+      return;
+    }
+
+    _selectTab(value);
+  }
+
+  Future<bool> _ensureSignedIn(int tabIndex) async {
+    final auth = AuthScope.of(context);
+
+    if (auth.isAuthenticated) {
+      return true;
     }
 
     final loggedIn = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => LoginScreen(
-          reason: _loginReason(value),
+          reason: _loginReason(tabIndex),
           onGooglePressed: auth.signInWithGoogle,
         ),
       ),
     );
 
-    if (!mounted || loggedIn != true) {
-      return;
+    return mounted && loggedIn == true;
+  }
+
+  Future<bool> _ensureProfileReady() async {
+    final auth = AuthScope.of(context);
+    final user = auth.user;
+
+    if (user == null || !user.needsOnboarding) {
+      return user != null;
     }
 
-    _selectTab(value);
+    final done = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => OnboardingScreen(onSessionExpired: _showFeed),
+      ),
+    );
+
+    return mounted && done == true && auth.isAuthenticated;
   }
 
   void _selectTab(int value) => setState(() => _tabIndex = value);

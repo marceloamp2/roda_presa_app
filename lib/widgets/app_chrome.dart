@@ -61,8 +61,6 @@ class BrandMark extends StatelessWidget {
   }
 }
 
-// Relógio que se atualiza a cada minuto; isolado para que o setData só
-// reconstrua este texto, não a marca inteira.
 class _Clock extends StatefulWidget {
   const _Clock();
 
@@ -112,8 +110,6 @@ class _ClockState extends State<_Clock> {
   }
 }
 
-// Roda com raios e a seta de partida laranja, num selo escuro (assinatura
-// da marca, definida no design em design/identidade-completa.html).
 class _BrandIcon extends StatelessWidget {
   const _BrandIcon();
 
@@ -217,8 +213,6 @@ class Pill extends StatelessWidget {
             fontSize: 12,
             fontWeight: FontWeight.w900,
           ),
-          // Altura fixa do conteúdo para todos os pills terem a mesma altura,
-          // com ícone e texto centrados verticalmente.
           child: SizedBox(
             height: 18,
             child: Center(widthFactor: 1, child: child),
@@ -229,10 +223,12 @@ class Pill extends StatelessWidget {
   }
 }
 
-// Título de página em dois tons: prefixo em ink, destaque em laranja
-// (padrão "Meus Rolês", "Meu Perfil", "Novo Rolê").
 class TwoToneTitle extends StatelessWidget {
-  const TwoToneTitle({required this.prefix, required this.highlight, super.key});
+  const TwoToneTitle({
+    required this.prefix,
+    required this.highlight,
+    super.key,
+  });
 
   final String prefix;
   final String highlight;
@@ -242,8 +238,14 @@ class TwoToneTitle extends StatelessWidget {
     return Text.rich(
       TextSpan(
         children: [
-          TextSpan(text: '$prefix ', style: const TextStyle(color: AppColors.ink)),
-          TextSpan(text: highlight, style: const TextStyle(color: AppColors.orange)),
+          TextSpan(
+            text: '$prefix ',
+            style: const TextStyle(color: AppColors.ink),
+          ),
+          TextSpan(
+            text: highlight,
+            style: const TextStyle(color: AppColors.orange),
+          ),
         ],
       ),
       style: Theme.of(context).textTheme.headlineMedium,

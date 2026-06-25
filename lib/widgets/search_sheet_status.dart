@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-// Estados compartilhados pelos bottom sheets de busca (cidades e locais):
-// a mensagem central (com ou sem spinner) e o estado de erro com retry.
 class SearchSheetMessage extends StatelessWidget {
   const SearchSheetMessage(this.message, {super.key}) : showProgress = false;
 

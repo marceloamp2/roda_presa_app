@@ -89,14 +89,6 @@ class AppTheme {
         centerTitle: false,
         foregroundColor: AppColors.ink,
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: AppColors.paper,
-        selectedItemColor: AppColors.ink,
-        unselectedItemColor: AppColors.asphalt,
-        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w800),
-        type: BottomNavigationBarType.fixed,
-        elevation: 0,
-      ),
       sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.orange,
         inactiveTrackColor: AppColors.hairline,

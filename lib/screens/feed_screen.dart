@@ -208,24 +208,32 @@ class _FeedHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const BrandMark(),
-        const Spacer(),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(city, style: Theme.of(context).textTheme.titleMedium),
-            Transform.translate(
-              offset: const Offset(0, -3),
-              child: TextButton(
-                onPressed: onChangeLocation,
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 24),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text('trocar'),
+        const SizedBox(width: 16),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                city,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-            ),
-          ],
+              Transform.translate(
+                offset: const Offset(0, -3),
+                child: TextButton(
+                  onPressed: onChangeLocation,
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 24),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('trocar'),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -280,7 +288,6 @@ class _RadiusControl extends StatefulWidget {
 }
 
 class _RadiusControlState extends State<_RadiusControl> {
-  // Valor exibido durante o arraste; o refetch só dispara ao soltar o slider.
   double? _dragValue;
 
   @override

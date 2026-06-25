@@ -51,15 +51,14 @@ class Ride {
   String get webUrl => 'https://rodapresa.com.br/rides/$id';
 
   String get shareText {
-    return '''🏍️ Motorbike 🏍️
+    return '''🏍️ Rolê de moto 🏍️
 🗓️ Data: $fullDate
-🚩 $destination
-🚏 Local: $destination
+🚩 Destino: $destination
+🚏 Saída: $departureName
 ⌚ Briefing: $briefing
-⏰ Saída: $time
+⏰ Saída às $time
 🛣️ Distância: ${distanceKm}km
-📍 Local de partida: $departureName
-💵 Pedágios - $tolls
+💵 Pedágios: $tolls
 
 👉 $webUrl''';
   }

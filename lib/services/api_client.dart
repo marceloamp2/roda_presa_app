@@ -6,11 +6,6 @@ import '../config/api_config.dart';
 import '../models/json_parsers.dart';
 import 'api_exception.dart';
 
-/// Shared HTTP transport for the app's API services.
-///
-/// Holds the base Uri handling, header assembly, status-code checking and
-/// JSON decoding so each service only describes its own endpoints. Every
-/// failure surfaces as an [ApiException], so callers handle one type.
 class ApiClient {
   ApiClient({http.Client? client, String? baseUrl})
     : _client = client ?? http.Client(),
@@ -141,17 +136,16 @@ class ApiClient {
         return message;
       }
     } catch (_) {
-      // No usable JSON body; fall back to the status code below.
+      return _statusCodeMessage(response);
     }
 
+    return _statusCodeMessage(response);
+  }
+
+  String _statusCodeMessage(http.Response response) {
     return 'A API respondeu com ${response.statusCode}.';
   }
 
-  /// Flattens the per-field validation messages from a 422 body.
-  ///
-  /// The API returns them under `data.errors` as `{ field: [messages] }`; this
-  /// drops the field keys and keeps every message in a single list so the UI
-  /// can show them as a plain list. Returns an empty list when absent.
   List<String> _fieldErrors(http.Response response) {
     try {
       final data = decode(response.body)['data'];

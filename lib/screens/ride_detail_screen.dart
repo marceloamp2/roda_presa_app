@@ -9,6 +9,7 @@ import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
 import '../widgets/app_snack_bar.dart';
+import '../widgets/confirm_cancel_dialog.dart';
 
 class RideDetailScreen extends StatefulWidget {
   const RideDetailScreen({required this.ride, super.key});
@@ -36,7 +37,7 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
   String? _detailsError;
   int _requestVersion = 0;
 
-  RideUser? get _me {
+  RideUser? get _currentUserConfirmation {
     final userId = AuthScope.of(context).user?.id;
 
     if (userId == null) {
@@ -46,7 +47,11 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
     return _ride.users.where((user) => user.id == userId).firstOrNull;
   }
 
-  bool get _joined => _me != null;
+  bool get _hasJoinedRide => _currentUserConfirmation != null;
+
+  bool get _isOrganizer => _currentUserConfirmation?.organizer == true;
+
+  bool get _isRideCanceled => _ride.canceled;
 
   @override
   void initState() {
@@ -77,7 +82,12 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
       body: ScreenFrame(
         child: ListView(
           children: [
-            _DetailTop(ride: _ride),
+            _DetailTop(
+              ride: _ride,
+              onCancel: _isOrganizer && !_isRideCanceled && !_submitting
+                  ? _confirmCancel
+                  : null,
+            ),
             const SizedBox(height: AppGaps.lg),
             _BriefingGrid(ride: _ride),
             const SizedBox(height: AppGaps.lg),
@@ -87,7 +97,7 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
               loadingDetails: _loadingDetails,
               detailsError: _detailsError,
               onRetry: _loadDetails,
-              onLeave: _submitting ? null : _leave,
+              onLeave: _submitting || _isRideCanceled ? null : _leave,
             ),
             const SizedBox(height: 120),
           ],
@@ -95,8 +105,10 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
       ),
       bottomNavigationBar: _ActionBar(
         onShare: _shareOnWhatsApp,
-        onJoin: _submitting ? null : (_joined ? _leave : _handleJoin),
-        joined: _joined,
+        onJoin: _submitting || _isRideCanceled
+            ? null
+            : (_hasJoinedRide ? _leave : _handleJoin),
+        joined: _hasJoinedRide,
       ),
     );
   }
@@ -231,6 +243,34 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
     }
   }
 
+  Future<void> _confirmCancel() async {
+    if (await showCancelRideDialog(context) && mounted) {
+      await _cancel();
+    }
+  }
+
+  Future<void> _cancel() async {
+    final token = AuthScope.of(context).token;
+
+    if (token == null || token.isEmpty) {
+      AppSnackBar.showError(context, 'Entre novamente para cancelar o rolê.');
+      return;
+    }
+
+    setState(() => _submitting = true);
+
+    try {
+      await _rideApiService.cancelRide(rideId: _ride.id, authToken: token);
+
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      AppSnackBar.showSuccess(context, 'Rolê cancelado.');
+      await _loadDetails();
+    } catch (exception) {
+      await _handleSubmitError(exception);
+    }
+  }
+
   Future<void> _handleSubmitError(Object exception) async {
     if (!mounted) return;
     setState(() => _submitting = false);
@@ -249,27 +289,57 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
 }
 
 class _DetailTop extends StatelessWidget {
-  const _DetailTop({required this.ride});
+  const _DetailTop({required this.ride, this.onCancel});
 
   final Ride ride;
+
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextButton.icon(
-          onPressed: () => Navigator.pop(context),
-          icon: const FaIcon(FontAwesomeIcons.arrowLeft),
-          label: const Text('voltar'),
+        Row(
+          children: [
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const FaIcon(FontAwesomeIcons.arrowLeft),
+                  label: const Text('voltar'),
+                ),
+              ),
+            ),
+            if (onCancel != null)
+              TextButton.icon(
+                onPressed: onCancel,
+                style: TextButton.styleFrom(foregroundColor: AppColors.red),
+                icon: const FaIcon(FontAwesomeIcons.trashCan, size: 16),
+                label: const Text('Cancelar rolê'),
+              ),
+          ],
         ),
         const SizedBox(height: 12),
-        Text(
-          ride.hot ? 'Rolê · 🔥 enchendo' : 'Rolê',
-          style: const TextStyle(
-            color: AppColors.asphalt,
-            fontWeight: FontWeight.w900,
-          ),
+        Row(
+          children: [
+            Text(
+              ride.hot ? 'Rolê · 🔥 enchendo' : 'Rolê',
+              style: const TextStyle(
+                color: AppColors.asphalt,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            if (ride.canceled) ...[
+              const SizedBox(width: 8),
+              const Pill(
+                color: AppColors.redSoft,
+                foreground: AppColors.red,
+                child: Text('cancelado'),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 8),
         Text(
@@ -318,7 +388,7 @@ class _BriefingGrid extends StatelessWidget {
     return CardFrame(
       child: Column(
         children: [
-          _BriefRow(label: 'saída', value: ride.departureSummary),
+          _BriefRow(label: 'Saída', value: ride.departureSummary),
           _BriefRow(label: 'Briefing', value: ride.briefing),
           _BriefRow(label: 'Distância', value: '${ride.distanceKm} km'),
           _BriefRow(label: 'Pedágios', value: ride.tolls),

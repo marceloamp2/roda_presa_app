@@ -61,6 +61,16 @@ class RideApiService {
     return _parseRide(response.body);
   }
 
+  Future<void> cancelRide({
+    required int rideId,
+    required String authToken,
+  }) async {
+    await _apiClient.delete(
+      _apiClient.uri('/rides/$rideId'),
+      authToken: authToken,
+    );
+  }
+
   Future<List<City>> searchCities({
     required String search,
     int limit = 20,

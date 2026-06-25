@@ -19,12 +19,19 @@ class AppUser {
   final String? state;
   final String? city;
 
+  bool get hasMotorcycle => (motorcycle?.trim().isNotEmpty) ?? false;
+
+  bool get hasCity => (city?.trim().isNotEmpty) ?? false;
+
+  bool get needsOnboarding => !hasMotorcycle || !hasCity;
+
+  String get firstName {
+    final parts = _nameParts;
+    return parts.isEmpty ? name.trim() : parts.first;
+  }
+
   String get initials {
-    final parts = name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((part) => part.isNotEmpty)
-        .toList();
+    final parts = _nameParts;
 
     if (parts.isEmpty) {
       return '?';
@@ -35,6 +42,12 @@ class AppUser {
 
     return '$first$last'.toUpperCase();
   }
+
+  List<String> get _nameParts => name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList();
 
   String get cityAndState {
     final cleanCity = city?.trim() ?? '';

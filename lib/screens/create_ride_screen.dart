@@ -48,7 +48,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
           const TwoToneTitle(prefix: 'Novo', highlight: 'Rolê'),
           const SizedBox(height: AppGaps.section),
           const SectionLabel('Dados'),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppGaps.xs),
           const Text(
             'Campos com * são obrigatórios',
             style: TextStyle(
@@ -203,13 +203,13 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   }
 
   Future<void> _selectBriefingTime() => _pickTime(
-    initial: _selectedBriefingTime ?? const TimeOfDay(hour: 9, minute: 0),
+    initial: _selectedBriefingTime ?? const TimeOfDay(hour: 7, minute: 30),
     helpText: 'Selecione a hora do briefing',
     onPicked: (time) => _selectedBriefingTime = time,
   );
 
   Future<void> _selectDepartureTime() => _pickTime(
-    initial: _selectedDepartureTime ?? const TimeOfDay(hour: 9, minute: 30),
+    initial: _selectedDepartureTime ?? const TimeOfDay(hour: 8, minute: 0),
     helpText: 'Selecione a hora da saída',
     onPicked: (time) => _selectedDepartureTime = time,
   );

@@ -87,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       setState(() {
         _isLoading = false;
-        _errorMessage = exception.toString();
+        _errorMessage = 'Não foi possível entrar com o Google. Tente novamente.';
       });
     }
   }

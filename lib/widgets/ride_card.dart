@@ -6,13 +6,22 @@ import '../theme/app_theme.dart';
 import 'app_chrome.dart';
 
 class RideCard extends StatelessWidget {
-  const RideCard({required this.ride, required this.onTap, super.key});
+  const RideCard({
+    required this.ride,
+    required this.onTap,
+    this.onCancel,
+    super.key,
+  });
 
   final Ride ride;
   final VoidCallback onTap;
 
+  final VoidCallback? onCancel;
+
   @override
   Widget build(BuildContext context) {
+    final showCancel = onCancel != null && !ride.canceled;
+
     return Card(
       elevation: 0,
       color: AppColors.paper,
@@ -28,6 +37,13 @@ class RideCard extends StatelessWidget {
               _DateBlock(ride: ride),
               const SizedBox(width: 16),
               Expanded(child: _RideInfo(ride: ride)),
+              if (showCancel)
+                IconButton(
+                  onPressed: onCancel,
+                  color: AppColors.red,
+                  tooltip: 'Cancelar rolê',
+                  icon: const FaIcon(FontAwesomeIcons.trashCan, size: 18),
+                ),
             ],
           ),
         ),

@@ -50,7 +50,7 @@ class AuthController extends ChangeNotifier {
         await _clearSession();
       }
     } catch (_) {
-      // Restore failures must not block the public feed.
+      return;
     } finally {
       _isRestoring = false;
       notifyListeners();
@@ -104,19 +104,10 @@ class AuthController extends ChangeNotifier {
     final currentToken = _token;
 
     if (currentToken != null && currentToken.isNotEmpty) {
-      try {
-        await _authApiService.logout(currentToken);
-      } catch (_) {
-        // Local logout must happen even if the API call fails.
-      }
+      await _tryLogoutFromApi(currentToken);
     }
 
-    try {
-      await _googleIdentityService.signOut();
-    } catch (_) {
-      // Local logout must happen even if Google sign-out fails.
-    }
-
+    await _trySignOutFromGoogle();
     await _clearSession();
     notifyListeners();
   }
@@ -126,11 +117,6 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Clears the session when [exception] means the token is no longer valid.
-  ///
-  /// Returns true when the session was expired (so the caller can send the
-  /// user back to the public feed), keeping the "401 means logged out" rule
-  /// in one place instead of in every screen.
   Future<bool> handleApiException(Object exception) async {
     if (exception is ApiException && exception.isUnauthorized) {
       await clearInvalidSession();
@@ -138,6 +124,22 @@ class AuthController extends ChangeNotifier {
     }
 
     return false;
+  }
+
+  Future<void> _tryLogoutFromApi(String token) async {
+    try {
+      await _authApiService.logout(token);
+    } catch (_) {
+      return;
+    }
+  }
+
+  Future<void> _trySignOutFromGoogle() async {
+    try {
+      await _googleIdentityService.signOut();
+    } catch (_) {
+      return;
+    }
   }
 
   Future<void> _clearSession() async {

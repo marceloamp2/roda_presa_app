@@ -7,9 +7,6 @@ import '../theme/app_theme.dart';
 import 'app_chrome.dart';
 import 'search_sheet_status.dart';
 
-/// Builds the tile for one search result. [selecting] is true while that item
-/// is awaiting an async selection, so the builder can show a per-item spinner;
-/// [onTap] starts the selection.
 typedef SearchSheetItemBuilder<T> =
     Widget Function(
       BuildContext context,
@@ -174,10 +171,7 @@ class _SearchSheetState<T> extends State<SearchSheet<T>> {
     }
 
     _startSearching();
-    _debounce = Timer(
-      _debounceDuration,
-      () => _search(search, requestVersion),
-    );
+    _debounce = Timer(_debounceDuration, () => _search(search, requestVersion));
   }
 
   void _startSearching() {

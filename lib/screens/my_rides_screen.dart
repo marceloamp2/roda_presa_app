@@ -7,6 +7,8 @@ import '../services/api_exception.dart';
 import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
+import '../widgets/app_snack_bar.dart';
+import '../widgets/confirm_cancel_dialog.dart';
 import '../widgets/ride_card.dart';
 import 'ride_detail_screen.dart';
 
@@ -29,6 +31,7 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
 
   int _segment = 0;
   bool _loading = false;
+  bool _canceling = false;
   String? _errorMessage;
   String? _loadedToken;
   MyRides? _rides;
@@ -80,7 +83,13 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
             const _EmptyState(),
           if (!_loading && _errorMessage == null)
             for (final ride in rides)
-              RideCard(ride: ride, onTap: () => _openRide(ride)),
+              RideCard(
+                ride: ride,
+                onTap: () => _openRide(ride),
+                onCancel: _segment == 1 && !_canceling
+                    ? () => _cancelRide(ride)
+                    : null,
+              ),
           const SizedBox(height: AppGaps.bottom),
         ],
       ),
@@ -102,6 +111,47 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
 
     if (mounted) {
       await _reload();
+    }
+  }
+
+  Future<void> _cancelRide(Ride ride) async {
+    if (_canceling || !await showCancelRideDialog(context) || !mounted) {
+      return;
+    }
+
+    final token = AuthScope.of(context).token;
+
+    if (token == null || token.isEmpty) {
+      AppSnackBar.showError(context, 'Entre novamente para cancelar o rolê.');
+      return;
+    }
+
+    setState(() => _canceling = true);
+
+    try {
+      await _rideApiService.cancelRide(rideId: ride.id, authToken: token);
+
+      if (!mounted) return;
+      AppSnackBar.showSuccess(context, 'Rolê cancelado.');
+      await _reload();
+    } catch (exception) {
+      if (!mounted) return;
+
+      if (await AuthScope.of(context).handleApiException(exception)) {
+        widget.onSessionExpired();
+        return;
+      }
+
+      if (!mounted) return;
+      AppSnackBar.showError(
+        context,
+        'Não foi possível cancelar o rolê agora.',
+        exception: exception,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _canceling = false);
+      }
     }
   }
 
@@ -209,7 +259,7 @@ class _SegmentedControl extends StatelessWidget {
 
           return AppColors.ink;
         }),
-        side: const WidgetStatePropertyAll(BorderSide(color: AppColors.paper)),
+        side: const WidgetStatePropertyAll(BorderSide(color: AppColors.hairline)),
       ),
     );
   }
@@ -250,7 +300,7 @@ class _MessageState extends StatelessWidget {
         children: [
           Text(message),
           const SizedBox(height: AppGaps.sm),
-          TextButton(onPressed: onRetry, child: const Text('tentar de novo')),
+          TextButton(onPressed: onRetry, child: const Text('Tentar novamente')),
         ],
       ),
     );

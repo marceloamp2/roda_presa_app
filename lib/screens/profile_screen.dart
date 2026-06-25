@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/city_search_sheet.dart';
+import '../widgets/motorcycle_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({required this.onLoggedOut, super.key});
@@ -79,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _editMotorcycle(AppUser user) async {
     final result = await showDialog<String>(
       context: context,
-      builder: (_) => _MotorcycleDialog(initialValue: user.motorcycle ?? ''),
+      builder: (_) => MotorcycleDialog(initialValue: user.motorcycle ?? ''),
     );
 
     if (result == null) {
@@ -194,64 +195,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() => _loggingOut = false);
     widget.onLoggedOut();
-  }
-}
-
-class _MotorcycleDialog extends StatefulWidget {
-  const _MotorcycleDialog({required this.initialValue});
-
-  final String initialValue;
-
-  @override
-  State<_MotorcycleDialog> createState() => _MotorcycleDialogState();
-}
-
-class _MotorcycleDialogState extends State<_MotorcycleDialog> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      title: const Text('Minha moto'),
-      content: SizedBox(
-        width: double.maxFinite,
-        child: TextField(
-          controller: _controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            fillColor: AppColors.modalField,
-            hintText: 'Ex.: Yamaha MT-07',
-          ),
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _submit(),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(onPressed: _submit, child: const Text('Salvar')),
-      ],
-    );
-  }
-
-  void _submit() {
-    Navigator.pop(context, _controller.text);
   }
 }
 

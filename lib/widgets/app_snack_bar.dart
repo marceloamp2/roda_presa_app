@@ -16,9 +16,6 @@ class AppSnackBar {
     );
   }
 
-  /// Shows an error SnackBar. When [exception] is given, its per-field
-  /// validation messages (the API's 422 `data.errors`) are listed under
-  /// [message] as bullets.
   static void showError(
     BuildContext context,
     String message, {

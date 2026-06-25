@@ -12,12 +12,6 @@ class GoogleIdentityService {
   final GoogleSignIn _googleSignIn;
   Future<void>? _initialization;
 
-  /// Returns the OpenID Connect ID token that the backend can verify to
-  /// authenticate the user.
-  ///
-  /// The ID token is a JWT signed by Google with `aud` set to the web client
-  /// id, so the server can trust the user identity without an extra userinfo
-  /// round-trip. Do not send the client access token to the backend instead.
   Future<String> requestIdToken() async {
     await _initialize();
 
@@ -63,8 +57,6 @@ class GoogleIdentityService {
           serverClientId: AuthConfig.googleWebClientId,
         )
         .catchError((Object error) {
-          // Drop the cached failure so the next attempt can retry instead of
-          // replaying the same rejected future for the whole app session.
           _initialization = null;
           throw error;
         });
