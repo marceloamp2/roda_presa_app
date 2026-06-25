@@ -155,6 +155,37 @@ class SectionLabel extends StatelessWidget {
   }
 }
 
+class FieldLabel extends StatelessWidget {
+  const FieldLabel(this.text, {required this.isRequired, super.key});
+
+  final String text;
+  final bool isRequired;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        text: text,
+        style: const TextStyle(
+          color: AppColors.asphalt,
+          fontWeight: FontWeight.w800,
+        ),
+        children: isRequired
+            ? const [
+                TextSpan(
+                  text: ' *',
+                  style: TextStyle(
+                    color: AppColors.orange,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ]
+            : null,
+      ),
+    );
+  }
+}
+
 class Hairline extends StatelessWidget {
   const Hairline({super.key});
 
@@ -199,7 +230,7 @@ class Pill extends StatelessWidget {
 }
 
 // Título de página em dois tons: prefixo em ink, destaque em laranja
-// (padrão "Meus Roles", "Meu Perfil", "Novo Role").
+// (padrão "Meus Rolês", "Meu Perfil", "Novo Rolê").
 class TwoToneTitle extends StatelessWidget {
   const TwoToneTitle({required this.prefix, required this.highlight, super.key});
 

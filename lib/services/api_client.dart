@@ -64,6 +64,16 @@ class ApiClient {
     }, expectedStatusCodes: expectedStatusCodes);
   }
 
+  Future<http.Response> delete(
+    Uri uri, {
+    String? authToken,
+    List<int> expectedStatusCodes = const [200, 204],
+  }) {
+    return _send(() {
+      return _client.delete(uri, headers: _headers(authToken: authToken));
+    }, expectedStatusCodes: expectedStatusCodes);
+  }
+
   Future<http.Response> _send(
     Future<http.Response> Function() request, {
     required List<int> expectedStatusCodes,

@@ -6,6 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/place.dart';
 import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
+import 'app_chrome.dart';
 import 'search_sheet.dart';
 
 class PlaceSearchField extends StatelessWidget {
@@ -16,6 +17,7 @@ class PlaceSearchField extends StatelessWidget {
     required this.rideApiService,
     required this.selectedPlace,
     required this.onSelected,
+    this.isRequired = false,
     super.key,
   });
 
@@ -25,6 +27,7 @@ class PlaceSearchField extends StatelessWidget {
   final RideApiService rideApiService;
   final SelectedPlace? selectedPlace;
   final ValueChanged<SelectedPlace> onSelected;
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
@@ -40,13 +43,7 @@ class PlaceSearchField extends StatelessWidget {
       child: ListTile(
         onTap: () => _openSearch(context),
         leading: FaIcon(icon, color: AppColors.orange),
-        title: Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.asphalt,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
+        title: FieldLabel(label, isRequired: isRequired),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -82,9 +79,7 @@ class PlaceSearchField extends StatelessWidget {
 
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.paper,
       isScrollControlled: true,
-      showDragHandle: true,
       builder: (_) => SearchSheet<PlaceSuggestion>(
         resultLimit: 5,
         texts: SearchSheetTexts(

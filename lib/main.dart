@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'auth/auth_controller.dart';
 import 'auth/auth_scope.dart';
@@ -46,6 +47,13 @@ class _RodaPresaAppState extends State<RodaPresaApp> {
         title: 'Roda Presa',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
+        locale: const Locale('pt', 'BR'),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('pt', 'BR')],
         home: const HomeShell(),
       ),
     );

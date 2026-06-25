@@ -47,7 +47,7 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
     super.didUpdateWidget(oldWidget);
 
     if (!oldWidget.isActive && widget.isActive) {
-      _loadIfNeeded();
+      _reload();
     }
   }
 
@@ -64,14 +64,14 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
     return ScreenFrame(
       child: ListView(
         children: [
-          const TwoToneTitle(prefix: 'Meus', highlight: 'Roles'),
+          const TwoToneTitle(prefix: 'Meus', highlight: 'Rolês'),
           const SizedBox(height: AppGaps.md),
           _SegmentedControl(
             value: _segment,
             onChanged: (value) => setState(() => _segment = value),
           ),
           const SizedBox(height: AppGaps.lg),
-          SectionLabel(_segment == 0 ? 'Vou nessas' : 'Organizo'),
+          SectionLabel(_segment == 0 ? 'Vou nesses' : 'Organizo'),
           const SizedBox(height: AppGaps.xs),
           if (_loading) const _LoadingState(),
           if (!_loading && _errorMessage != null)
@@ -80,7 +80,7 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
             const _EmptyState(),
           if (!_loading && _errorMessage == null)
             for (final ride in rides)
-              RideCard(ride: ride, onTap: () => context.openRide(ride)),
+              RideCard(ride: ride, onTap: () => _openRide(ride)),
           const SizedBox(height: AppGaps.bottom),
         ],
       ),
@@ -95,6 +95,14 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
     }
 
     return _segment == 0 ? rides.confirmed : rides.organized;
+  }
+
+  Future<void> _openRide(Ride ride) async {
+    await context.openRide(ride);
+
+    if (mounted) {
+      await _reload();
+    }
   }
 
   void _loadIfNeeded() {
@@ -113,7 +121,7 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
     if (token == null || token.isEmpty) {
       setState(() {
         _loading = false;
-        _errorMessage = 'Entre novamente para ver seus roles.';
+        _errorMessage = 'Entre novamente para ver seus rolês.';
         _rides = null;
         _loadedToken = null;
       });
@@ -167,7 +175,7 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
       return exception.message;
     }
 
-    return 'Não foi possível carregar seus roles agora.';
+    return 'Não foi possível carregar seus rolês agora.';
   }
 }
 
@@ -181,7 +189,7 @@ class _SegmentedControl extends StatelessWidget {
   Widget build(BuildContext context) {
     return SegmentedButton<int>(
       segments: const [
-        ButtonSegment(value: 0, label: Text('Vou nessas')),
+        ButtonSegment(value: 0, label: Text('Vou nesses')),
         ButtonSegment(value: 1, label: Text('Organizo')),
       ],
       selected: {value},
@@ -224,7 +232,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const CardFrame(child: Text('Nenhum role por aqui ainda.'));
+    return const CardFrame(child: Text('Nenhum rolê por aqui ainda.'));
   }
 }
 

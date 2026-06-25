@@ -36,6 +36,31 @@ class RideApiService {
     return _parseRide(response.body);
   }
 
+  Future<Ride> confirmPresence({
+    required int rideId,
+    required String authToken,
+  }) async {
+    final response = await _apiClient.post(
+      _apiClient.uri('/rides/$rideId/confirm'),
+      const {},
+      authToken: authToken,
+    );
+
+    return _parseRide(response.body);
+  }
+
+  Future<Ride> leaveRide({
+    required int rideId,
+    required String authToken,
+  }) async {
+    final response = await _apiClient.delete(
+      _apiClient.uri('/rides/$rideId/confirm'),
+      authToken: authToken,
+    );
+
+    return _parseRide(response.body);
+  }
+
   Future<List<City>> searchCities({
     required String search,
     int limit = 20,

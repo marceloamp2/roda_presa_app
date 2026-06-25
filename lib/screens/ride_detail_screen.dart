@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../auth/auth_scope.dart';
 import '../models/ride.dart';
 import '../models/ride_user.dart';
 import '../services/ride_api_service.dart';
@@ -19,8 +20,8 @@ class RideDetailScreen extends StatefulWidget {
 }
 
 extension RideNavigation on BuildContext {
-  void openRide(Ride ride) {
-    Navigator.of(this).push(
+  Future<void> openRide(Ride ride) {
+    return Navigator.of(this).push(
       MaterialPageRoute<void>(builder: (_) => RideDetailScreen(ride: ride)),
     );
   }
@@ -30,10 +31,22 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
   final RideApiService _rideApiService = RideApiService();
 
   late Ride _ride;
-  bool _confirmed = false;
+  bool _submitting = false;
   bool _loadingDetails = false;
   String? _detailsError;
   int _requestVersion = 0;
+
+  RideUser? get _me {
+    final userId = AuthScope.of(context).user?.id;
+
+    if (userId == null) {
+      return null;
+    }
+
+    return _ride.users.where((user) => user.id == userId).firstOrNull;
+  }
+
+  bool get _joined => _me != null;
 
   @override
   void initState() {
@@ -70,27 +83,36 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
             const SizedBox(height: AppGaps.lg),
             _ConfirmedList(
               ride: _ride,
-              confirmed: _confirmed,
+              currentUserId: AuthScope.of(context).user?.id,
               loadingDetails: _loadingDetails,
               detailsError: _detailsError,
               onRetry: _loadDetails,
+              onLeave: _submitting ? null : _leave,
             ),
             const SizedBox(height: 120),
           ],
         ),
       ),
       bottomNavigationBar: _ActionBar(
-        onCopy: _copyRideText,
-        onJoin: _handleJoin,
-        joined: _confirmed,
+        onShare: _shareOnWhatsApp,
+        onJoin: _submitting ? null : (_joined ? _leave : _handleJoin),
+        joined: _joined,
       ),
     );
   }
 
-  Future<void> _copyRideText() async {
-    await Clipboard.setData(ClipboardData(text: _ride.shareText));
-    if (!mounted) return;
-    AppSnackBar.showSuccess(context, 'Lista copiada no formato do WhatsApp.');
+  Future<void> _shareOnWhatsApp() async {
+    final whatsAppUrl = Uri.parse(
+      'https://wa.me/?text=${Uri.encodeComponent(_ride.shareText)}',
+    );
+
+    final launched = await launchUrl(
+      whatsAppUrl,
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!mounted || launched) return;
+    AppSnackBar.showError(context, 'Não foi possível abrir o WhatsApp.');
   }
 
   Future<void> _loadDetails() async {
@@ -129,22 +151,100 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
   }
 
   void _handleJoin() {
-    if (_confirmed) {
-      setState(() => _confirmed = false);
+    if (AuthScope.of(context).isAuthenticated) {
+      _confirm();
       return;
     }
+
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.paper,
-      showDragHandle: true,
-      builder: (_) => _LoginSheet(ride: _ride, onContinue: _confirmAfterLogin),
+      builder: (_) => _LoginSheet(ride: _ride, onContinue: _signInThenConfirm),
     );
   }
 
-  void _confirmAfterLogin() {
+  Future<void> _signInThenConfirm() async {
+    try {
+      await AuthScope.of(context).signInWithGoogle();
+    } catch (_) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      AppSnackBar.showError(context, 'Não foi possível entrar com o Google.');
+      return;
+    }
+
+    if (!mounted) return;
     Navigator.pop(context);
-    setState(() => _confirmed = true);
-    AppSnackBar.showSuccess(context, 'Você entrou na lista.');
+    _confirm();
+  }
+
+  Future<void> _confirm() async {
+    final token = AuthScope.of(context).token;
+
+    if (token == null || token.isEmpty) {
+      AppSnackBar.showError(context, 'Entre novamente para entrar na lista.');
+      return;
+    }
+
+    setState(() => _submitting = true);
+
+    try {
+      final ride = await _rideApiService.confirmPresence(
+        rideId: _ride.id,
+        authToken: token,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _ride = ride;
+        _submitting = false;
+      });
+      AppSnackBar.showSuccess(context, 'Você entrou na lista.');
+    } catch (exception) {
+      await _handleSubmitError(exception);
+    }
+  }
+
+  Future<void> _leave() async {
+    final token = AuthScope.of(context).token;
+
+    if (token == null || token.isEmpty) {
+      AppSnackBar.showError(context, 'Entre novamente para sair da lista.');
+      return;
+    }
+
+    setState(() => _submitting = true);
+
+    try {
+      final ride = await _rideApiService.leaveRide(
+        rideId: _ride.id,
+        authToken: token,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _ride = ride;
+        _submitting = false;
+      });
+      AppSnackBar.showSuccess(context, 'Você saiu da lista.');
+    } catch (exception) {
+      await _handleSubmitError(exception);
+    }
+  }
+
+  Future<void> _handleSubmitError(Object exception) async {
+    if (!mounted) return;
+    setState(() => _submitting = false);
+
+    if (await AuthScope.of(context).handleApiException(exception)) {
+      return;
+    }
+
+    if (!mounted) return;
+    AppSnackBar.showError(
+      context,
+      'Não foi possível atualizar sua presença agora.',
+      exception: exception,
+    );
   }
 }
 
@@ -165,7 +265,7 @@ class _DetailTop extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          ride.hot ? 'Role · 🔥 enchendo' : 'Role',
+          ride.hot ? 'Rolê · 🔥 enchendo' : 'Rolê',
           style: const TextStyle(
             color: AppColors.asphalt,
             fontWeight: FontWeight.w900,
@@ -260,22 +360,22 @@ class _BriefRow extends StatelessWidget {
 class _ConfirmedList extends StatelessWidget {
   const _ConfirmedList({
     required this.ride,
-    required this.confirmed,
+    required this.currentUserId,
     required this.loadingDetails,
     required this.detailsError,
     required this.onRetry,
+    required this.onLeave,
   });
 
   final Ride ride;
-  final bool confirmed;
+  final int? currentUserId;
   final bool loadingDetails;
   final String? detailsError;
   final VoidCallback onRetry;
+  final VoidCallback? onLeave;
 
   @override
   Widget build(BuildContext context) {
-    final count = ride.baseConfirmedCount + (confirmed ? 1 : 0);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -291,7 +391,7 @@ class _ConfirmedList extends StatelessWidget {
               ),
             ),
             Text(
-              '$count',
+              '${ride.baseConfirmedCount}',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontSize: 24,
                 color: AppColors.green,
@@ -303,18 +403,12 @@ class _ConfirmedList extends StatelessWidget {
         if (loadingDetails) const LinearProgressIndicator(minHeight: 2),
         if (detailsError != null && ride.users.isEmpty)
           _ConfirmedListMessage(message: detailsError!, onRetry: onRetry),
-        if (confirmed)
-          const _PersonRow(
-            number: '✓',
-            user: RideUser(
-              id: 0,
-              name: 'Você',
-              motorcycleSnapshot: 'sua moto',
-              organizer: false,
-            ),
-          ),
         for (var index = 0; index < ride.users.length; index++)
-          _PersonRow(number: '${index + 1}', user: ride.users[index]),
+          _PersonRow(
+            number: '${index + 1}',
+            user: ride.users[index],
+            onLeave: ride.users[index].id == currentUserId ? onLeave : null,
+          ),
       ],
     );
   }
@@ -348,10 +442,11 @@ class _ConfirmedListMessage extends StatelessWidget {
 }
 
 class _PersonRow extends StatelessWidget {
-  const _PersonRow({required this.number, required this.user});
+  const _PersonRow({required this.number, required this.user, this.onLeave});
 
   final String number;
   final RideUser user;
+  final VoidCallback? onLeave;
 
   @override
   Widget build(BuildContext context) {
@@ -366,33 +461,48 @@ class _PersonRow extends StatelessWidget {
         style: const TextStyle(fontWeight: FontWeight.w900),
       ),
       subtitle: Text(user.motorcycleSnapshot ?? 'moto não informada'),
-      trailing: InitialsAvatar(user.initials),
+      trailing: onLeave == null
+          ? InitialsAvatar(user.initials)
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                InitialsAvatar(user.initials),
+                IconButton(
+                  onPressed: onLeave,
+                  color: AppColors.red,
+                  tooltip: 'Sair da lista',
+                  icon: const FaIcon(FontAwesomeIcons.trashCan, size: 18),
+                ),
+              ],
+            ),
     );
   }
 }
 
 class _ActionBar extends StatelessWidget {
   const _ActionBar({
-    required this.onCopy,
+    required this.onShare,
     required this.onJoin,
     required this.joined,
   });
 
-  final VoidCallback onCopy;
-  final VoidCallback onJoin;
+  final VoidCallback onShare;
+  final VoidCallback? onJoin;
   final bool joined;
 
   @override
   Widget build(BuildContext context) {
+    final background = joined ? AppColors.red : AppColors.green;
+
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Row(
         children: [
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: onCopy,
-              icon: const FaIcon(FontAwesomeIcons.copy),
-              label: const Text('Copiar'),
+              onPressed: onShare,
+              icon: const FaIcon(FontAwesomeIcons.whatsapp),
+              label: const Text('Compartilhar'),
             ),
           ),
           const SizedBox(width: 10),
@@ -400,9 +510,11 @@ class _ActionBar extends StatelessWidget {
             child: FilledButton(
               onPressed: onJoin,
               style: FilledButton.styleFrom(
-                backgroundColor: joined ? AppColors.green : AppColors.orange,
+                backgroundColor: background,
+                disabledBackgroundColor: background,
+                disabledForegroundColor: AppColors.paper,
               ),
-              child: Text(joined ? 'Estou na lista' : 'Vou nessa'),
+              child: Text(joined ? 'Sair da lista' : 'Eu vou'),
             ),
           ),
         ],
@@ -446,7 +558,7 @@ class _LoginSheet extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Ver o feed e os roles é livre. O login só aparece quando você se compromete.',
+            'Ver o feed e os rolês é livre. O login só aparece quando você se compromete.',
           ),
         ],
       ),

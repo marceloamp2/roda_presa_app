@@ -150,7 +150,7 @@ class _FeedScreenState extends State<FeedScreen> {
       setState(() {
         _rides = const [];
         _loading = false;
-        _errorMessage = 'Não foi possível carregar os roles agora.';
+        _errorMessage = 'Não foi possível carregar os rolês agora.';
       });
     }
   }
@@ -158,9 +158,7 @@ class _FeedScreenState extends State<FeedScreen> {
   void _openLocationSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.paper,
       isScrollControlled: true,
-      showDragHandle: true,
       builder: (_) => CitySearchSheet(
         rideApiService: _rideApiService,
         onCitySelected: _selectCity,
@@ -343,7 +341,7 @@ class _FeedTitle extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            'Próximos roles',
+            'Próximos rolês',
             style: Theme.of(
               context,
             ).textTheme.headlineMedium?.copyWith(color: AppColors.inkMedium),
@@ -373,7 +371,7 @@ class _LoadingState extends StatelessWidget {
         children: [
           CircularProgressIndicator(),
           SizedBox(height: 14),
-          Text('Carregando roles perto de você...'),
+          Text('Carregando rolês perto de você...'),
         ],
       ),
     );
@@ -393,7 +391,7 @@ class _ErrorState extends StatelessWidget {
           const FaIcon(FontAwesomeIcons.triangleExclamation, size: 28),
           const SizedBox(height: 10),
           const Text(
-            'Não foi possível carregar os roles agora.',
+            'Não foi possível carregar os rolês agora.',
             textAlign: TextAlign.center,
             style: TextStyle(fontWeight: FontWeight.w800),
           ),
@@ -415,7 +413,7 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return const _StatusCard(
       child: Text(
-        'Nenhum role encontrado nesse raio. Tente aumentar a distância.',
+        'Nenhum rolê encontrado nesse raio. Tente aumentar a distância.',
         textAlign: TextAlign.center,
         style: TextStyle(fontWeight: FontWeight.w800),
       ),

@@ -45,9 +45,17 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     return ScreenFrame(
       child: ListView(
         children: [
-          const TwoToneTitle(prefix: 'Novo', highlight: 'Role'),
+          const TwoToneTitle(prefix: 'Novo', highlight: 'Rolê'),
           const SizedBox(height: AppGaps.section),
           const SectionLabel('Dados'),
+          const SizedBox(height: 4),
+          const Text(
+            'Campos com * são obrigatórios',
+            style: TextStyle(
+              color: AppColors.orange,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: AppGaps.sm),
           _SelectorField(
             label: 'Data',
@@ -55,6 +63,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
             icon: FontAwesomeIcons.calendar,
             onTap: _selectDate,
             isPlaceholder: _selectedDate == null,
+            isRequired: true,
           ),
           PlaceSearchField(
             label: 'Destino',
@@ -63,6 +72,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
             rideApiService: _rideApiService,
             selectedPlace: _destinationPlace,
             onSelected: (place) => setState(() => _destinationPlace = place),
+            isRequired: true,
           ),
           PlaceSearchField(
             label: 'Ponto de partida',
@@ -71,6 +81,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
             rideApiService: _rideApiService,
             selectedPlace: _startPlace,
             onSelected: (place) => setState(() => _startPlace = place),
+            isRequired: true,
           ),
           _SelectorField(
             label: 'Hora do briefing',
@@ -78,6 +89,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
             icon: FontAwesomeIcons.userGroup,
             onTap: _selectBriefingTime,
             isPlaceholder: _selectedBriefingTime == null,
+            isRequired: true,
           ),
           _SelectorField(
             label: 'Hora da saída',
@@ -85,6 +97,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
             icon: FontAwesomeIcons.clock,
             onTap: _selectDepartureTime,
             isPlaceholder: _selectedDepartureTime == null,
+            isRequired: true,
           ),
           _TextInputField(
             label: 'Pedágios (ida e volta)',
@@ -93,15 +106,22 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
             controller: _tollsController,
             keyboardType: TextInputType.number,
             inputFormatters: const [_BrazilianCurrencyInputFormatter()],
+            isRequired: true,
           ),
           _TextInputField(
             label: 'Observações',
-            hintText: 'Opcional',
+            hintText: 'Toque para digitar',
             icon: FontAwesomeIcons.noteSticky,
             controller: _notesController,
             keyboardType: TextInputType.multiline,
           ),
-          _SuggestedTitle(controller: _titleController),
+          _TextInputField(
+            label: 'Título',
+            hintText: 'Toque para digitar',
+            icon: FontAwesomeIcons.heading,
+            controller: _titleController,
+            isRequired: true,
+          ),
           const SizedBox(height: AppGaps.lg),
           FilledButton(
             onPressed: _publishing ? null : _publish,
@@ -111,7 +131,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 3),
                   )
-                : const Text('Publicar role'),
+                : const Text('Publicar rolê'),
           ),
           const SizedBox(height: AppGaps.bottom),
         ],
@@ -220,7 +240,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     }
 
     final toll = _parseToll();
-    if (toll == null && _tollsController.text.trim().isNotEmpty) {
+    if (toll == null) {
       AppSnackBar.showError(context, 'Informe o pedágio como valor em reais.');
       return;
     }
@@ -229,7 +249,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     final authToken = auth.token;
 
     if (authToken == null || authToken.isEmpty) {
-      AppSnackBar.showError(context, 'Entre novamente para publicar o role.');
+      AppSnackBar.showError(context, 'Entre novamente para publicar o rolê.');
       widget.onSessionExpired();
       return;
     }
@@ -241,9 +261,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
         authToken: authToken,
         title: _titleController.text.trim(),
         rideDate: _formatDateForApi(_selectedDate!),
-        briefingTime: _selectedBriefingTime == null
-            ? null
-            : _formatTimeForApi(_selectedBriefingTime!),
+        briefingTime: _formatTimeForApi(_selectedBriefingTime!),
         departureTime: _formatTimeForApi(_selectedDepartureTime!),
         startPlace: _startPlace!,
         destinationPlace: _destinationPlace!,
@@ -259,7 +277,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
         _publishing = false;
         _resetFields();
       });
-      AppSnackBar.showSuccess(context, 'Role publicado.');
+      AppSnackBar.showSuccess(context, 'Rolê publicado.');
       widget.onRidePublished();
     } catch (exception) {
       if (!mounted) {
@@ -286,27 +304,21 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   }
 
   String? _validationMessage() {
-    if (_destinationPlace == null) {
-      return 'Selecione o destino na lista.';
+    final missingFields = <String>[
+      if (_destinationPlace == null) 'destino',
+      if (_startPlace == null) 'ponto de partida',
+      if (_selectedDate == null) 'data',
+      if (_selectedBriefingTime == null) 'hora do briefing',
+      if (_selectedDepartureTime == null) 'hora da saída',
+      if (_tollsController.text.trim().isEmpty) 'pedágio',
+      if (_titleController.text.trim().isEmpty) 'título',
+    ];
+
+    if (missingFields.isEmpty) {
+      return null;
     }
 
-    if (_startPlace == null) {
-      return 'Selecione o ponto de partida na lista.';
-    }
-
-    if (_selectedDate == null) {
-      return 'Selecione a data do role.';
-    }
-
-    if (_selectedDepartureTime == null) {
-      return 'Selecione a hora da saída.';
-    }
-
-    if (_titleController.text.trim().isEmpty) {
-      return 'Digite o título do role.';
-    }
-
-    return null;
+    return 'Preencha os campos obrigatórios: ${missingFields.join(', ')}.';
   }
 
   double? _parseToll() {
@@ -342,14 +354,14 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   String _publishErrorMessage(Object exception) {
     if (exception is ApiException) {
       return switch (exception.statusCode) {
-        422 => 'Confira os dados do role antes de publicar.',
+        422 => 'Confira os dados do rolê antes de publicar.',
         429 => 'Muitas tentativas. Aguarde um pouco e tente novamente.',
         502 => 'Não foi possível publicar agora. Tente novamente em instantes.',
         _ => exception.message,
       };
     }
 
-    return 'Não foi possível publicar o role agora.';
+    return 'Não foi possível publicar o rolê agora.';
   }
 }
 
@@ -360,6 +372,7 @@ class _SelectorField extends StatelessWidget {
     required this.icon,
     this.onTap,
     this.isPlaceholder = false,
+    this.isRequired = false,
   });
 
   final String label;
@@ -367,6 +380,7 @@ class _SelectorField extends StatelessWidget {
   final FaIconData icon;
   final VoidCallback? onTap;
   final bool isPlaceholder;
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
@@ -379,13 +393,7 @@ class _SelectorField extends StatelessWidget {
       child: ListTile(
         onTap: onTap,
         leading: FaIcon(icon, color: AppColors.orange),
-        title: Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.asphalt,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
+        title: FieldLabel(label, isRequired: isRequired),
         subtitle: Text(
           value,
           style: TextStyle(
@@ -408,6 +416,7 @@ class _TextInputField extends StatelessWidget {
     required this.controller,
     this.keyboardType,
     this.inputFormatters,
+    this.isRequired = false,
   });
 
   final String label;
@@ -416,6 +425,7 @@ class _TextInputField extends StatelessWidget {
   final TextEditingController controller;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
+  final bool isRequired;
 
   @override
   Widget build(BuildContext context) {
@@ -438,13 +448,7 @@ class _TextInputField extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: AppColors.asphalt,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                FieldLabel(label, isRequired: isRequired),
                 TextField(
                   controller: controller,
                   keyboardType: keyboardType,
@@ -515,49 +519,5 @@ class _BrazilianCurrencyInputFormatter extends TextInputFormatter {
     }
 
     return groups.reversed.join('.');
-  }
-}
-
-class _SuggestedTitle extends StatelessWidget {
-  const _SuggestedTitle({required this.controller});
-
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 8, bottom: 12),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.hairline),
-        borderRadius: BorderRadius.circular(AppRadius.field),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SectionLabel('Título sugerido'),
-          const SizedBox(height: 6),
-          TextField(
-            controller: controller,
-            maxLines: 2,
-            minLines: 1,
-            style: Theme.of(context).textTheme.headlineMedium,
-            decoration: InputDecoration(
-              hintText: 'Digite o título do role',
-              hintStyle: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(color: AppColors.asphalt),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              isDense: true,
-              contentPadding: EdgeInsets.zero,
-              filled: false,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

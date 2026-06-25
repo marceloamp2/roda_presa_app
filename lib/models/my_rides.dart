@@ -29,7 +29,7 @@ class MyRides {
     try {
       return [for (final item in list) Ride.fromJson(asJsonObject(item))];
     } catch (_) {
-      throw const FormatException('Resposta de Meus roles inválida.');
+      throw const FormatException('Resposta de Meus rolês inválida.');
     }
   }
 }

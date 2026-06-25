@@ -15,6 +15,8 @@ class AppColors {
   static const asphalt = Color(0xFF6B7079);
   static const hairline = Color(0xFFECEAE3);
   static const display = Color(0xE316181D);
+  static const modal = Color(0xFFF2EFE7);
+  static const modalField = Color(0xFFFAFAF7);
 }
 
 class AppRadius {
@@ -108,6 +110,33 @@ class AppTheme {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide.none,
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.modal,
+        surfaceTintColor: Colors.transparent,
+        showDragHandle: true,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.modal,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        backgroundColor: AppColors.modal,
+        dialBackgroundColor: AppColors.modalField,
+        hourMinuteColor: AppColors.modalField,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: AppColors.modal,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
       ),
     );

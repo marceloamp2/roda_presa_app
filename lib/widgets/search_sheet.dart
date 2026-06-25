@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
+import '../theme/app_theme.dart';
 import 'app_chrome.dart';
 import 'search_sheet_status.dart';
 
@@ -108,6 +109,7 @@ class _SearchSheetState<T> extends State<SearchSheet<T>> {
                   autofocus: true,
                   onChanged: _onSearchChanged,
                   decoration: InputDecoration(
+                    fillColor: AppColors.modalField,
                     prefixIcon: const Padding(
                       padding: EdgeInsets.all(12),
                       child: FaIcon(FontAwesomeIcons.magnifyingGlass, size: 18),

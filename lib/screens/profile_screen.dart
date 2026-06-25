@@ -99,9 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _openCitySheet() {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.paper,
       isScrollControlled: true,
-      showDragHandle: true,
       builder: (_) => CitySearchSheet(
         rideApiService: _rideApiService,
         title: 'Cidade',
@@ -226,14 +224,21 @@ class _MotorcycleDialogState extends State<_MotorcycleDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       title: const Text('Minha moto'),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        textCapitalization: TextCapitalization.words,
-        decoration: const InputDecoration(hintText: 'Ex.: Yamaha MT-07'),
-        textInputAction: TextInputAction.done,
-        onSubmitted: (_) => _submit(),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: TextField(
+          controller: _controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            fillColor: AppColors.modalField,
+            hintText: 'Ex.: Yamaha MT-07',
+          ),
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _submit(),
+        ),
       ),
       actions: [
         TextButton(

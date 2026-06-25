@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: AppGaps.md),
             Text(
               widget.reason ??
-                  'Descubra os roles perto de você e confirme presença numa '
+                  'Descubra os rolês perto de você e confirme presença numa '
                       'lista que todo mundo confia.',
               style: Theme.of(
                 context,
@@ -103,7 +103,7 @@ class _Highlights extends StatelessWidget {
         children: [
           _HighlightRow(
             icon: FontAwesomeIcons.compass,
-            text: 'Acha roles perto de você no fim de semana',
+            text: 'Acha rolês perto de você no fim de semana',
           ),
           SizedBox(height: 14),
           _HighlightRow(
@@ -113,7 +113,7 @@ class _Highlights extends StatelessWidget {
           SizedBox(height: 14),
           _HighlightRow(
             icon: FontAwesomeIcons.motorcycle,
-            text: 'Mostra sua moto pra galera do role',
+            text: 'Mostra sua moto pra galera do rolê',
           ),
         ],
       ),

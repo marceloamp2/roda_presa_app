@@ -48,6 +48,8 @@ class Ride {
     return '$departureName, $departureDetail';
   }
 
+  String get webUrl => 'https://rodapresa.com.br/rides/$id';
+
   String get shareText {
     return '''🏍️ Motorbike 🏍️
 🗓️ Data: $fullDate
@@ -57,7 +59,9 @@ class Ride {
 ⏰ Saída: $time
 🛣️ Distância: ${distanceKm}km
 📍 Local de partida: $departureName
-💵 Pedágios - $tolls''';
+💵 Pedágios - $tolls
+
+👉 $webUrl''';
   }
 
   int get baseConfirmedCount => max(confirmedCount, users.length);

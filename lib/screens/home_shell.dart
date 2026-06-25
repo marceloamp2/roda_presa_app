@@ -101,8 +101,8 @@ class _HomeShellState extends State<HomeShell> {
 
   String _loginReason(int tabIndex) {
     return switch (tabIndex) {
-      1 => 'Entra pra criar seu role e entrar na lista como organizador.',
-      2 => 'Entra pra ver os roles que você confirmou ou organizou.',
+      1 => 'Entra pra criar seu rolê e entrar na lista como organizador.',
+      2 => 'Entra pra ver os rolês que você confirmou ou organizou.',
       3 => 'Entra pra ver seu perfil, moto e cidade base.',
       _ => 'Entra pra continuar no Roda Presa.',
     };
@@ -155,11 +155,11 @@ class _BottomTabs extends StatelessWidget {
           ),
           NavigationDestination(
             icon: FaIcon(FontAwesomeIcons.circlePlus),
-            label: 'Novo role',
+            label: 'Novo rolê',
           ),
           NavigationDestination(
             icon: FaIcon(FontAwesomeIcons.listUl),
-            label: 'Meus roles',
+            label: 'Meus rolês',
           ),
           NavigationDestination(
             icon: FaIcon(FontAwesomeIcons.user),
