@@ -30,11 +30,8 @@ class CitySearchSheet extends StatelessWidget {
       ),
       search: (search, limit) =>
           rideApiService.searchCities(search: search, limit: limit),
-      itemBuilder: (context, city, selecting, onTap) => _CityOption(
-        title: city.name,
-        subtitle: city.state,
-        onTap: onTap,
-      ),
+      itemBuilder: (context, city, selecting, onTap) =>
+          _CityOption(title: city.name, subtitle: city.state, onTap: onTap),
       onSelect: (city) async {
         onCitySelected(city);
         return true;

@@ -61,3 +61,11 @@ String? asNullableString(dynamic value) {
 
   return value;
 }
+
+double? asNullableDouble(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+
+  return asDouble(value);
+}

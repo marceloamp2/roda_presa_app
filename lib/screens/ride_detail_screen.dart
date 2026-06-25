@@ -5,11 +5,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../auth/auth_scope.dart';
 import '../models/ride.dart';
 import '../models/ride_user.dart';
+import '../services/google_identity_service.dart';
 import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_chrome.dart';
 import '../widgets/app_snack_bar.dart';
 import '../widgets/confirm_cancel_dialog.dart';
+import 'create_ride_screen.dart';
 
 class RideDetailScreen extends StatefulWidget {
   const RideDetailScreen({required this.ride, super.key});
@@ -53,6 +55,22 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
 
   bool get _isRideCanceled => _ride.canceled;
 
+  bool get _canEditRide {
+    return _isOrganizer && !_isRideCanceled && !_submitting && !_isPastRide;
+  }
+
+  bool get _isPastRide {
+    final rideDate = DateTime.tryParse(_ride.editData.rideDate);
+
+    if (rideDate == null) {
+      return false;
+    }
+
+    final today = DateUtils.dateOnly(DateTime.now());
+
+    return DateUtils.dateOnly(rideDate).isBefore(today);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +102,7 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
           children: [
             _DetailTop(
               ride: _ride,
+              onEdit: _canEditRide ? _editRide : null,
               onCancel: _isOrganizer && !_isRideCanceled && !_submitting
                   ? _confirmCancel
                   : null,
@@ -177,10 +196,16 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
   Future<void> _signInThenConfirm() async {
     try {
       await AuthScope.of(context).signInWithGoogle();
-    } catch (_) {
+    } catch (exception) {
       if (!mounted) return;
       Navigator.pop(context);
-      AppSnackBar.showError(context, 'Não foi possível entrar com o Google.');
+      AppSnackBar.showError(
+        context,
+        googleSignInErrorMessage(
+          exception,
+          fallback: 'Não foi possível entrar com o Google.',
+        ),
+      );
       return;
     }
 
@@ -243,6 +268,14 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
     }
   }
 
+  Future<void> _editRide() async {
+    final saved = await context.editRide(_ride);
+
+    if (saved == true && mounted) {
+      await _loadDetails();
+    }
+  }
+
   Future<void> _confirmCancel() async {
     if (await showCancelRideDialog(context) && mounted) {
       await _cancel();
@@ -289,10 +322,11 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
 }
 
 class _DetailTop extends StatelessWidget {
-  const _DetailTop({required this.ride, this.onCancel});
+  const _DetailTop({required this.ride, this.onEdit, this.onCancel});
 
   final Ride ride;
 
+  final VoidCallback? onEdit;
   final VoidCallback? onCancel;
 
   @override
@@ -312,6 +346,13 @@ class _DetailTop extends StatelessWidget {
                 ),
               ),
             ),
+            if (onEdit != null)
+              TextButton.icon(
+                onPressed: onEdit,
+                style: TextButton.styleFrom(foregroundColor: AppColors.blue),
+                icon: const FaIcon(FontAwesomeIcons.penToSquare, size: 16),
+                label: const Text('Editar'),
+              ),
             if (onCancel != null)
               TextButton.icon(
                 onPressed: onCancel,
@@ -343,35 +384,12 @@ class _DetailTop extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          ride.destination,
-          maxLines: 1,
+          ride.title,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(
             context,
           ).textTheme.displayMedium?.copyWith(color: AppColors.inkMedium),
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          width: double.infinity,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              ride.date,
-              maxLines: 1,
-              style: Theme.of(
-                context,
-              ).textTheme.displayLarge?.copyWith(color: AppColors.inkMedium),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          '${ride.weekday} · saída às ${ride.time}',
-          style: const TextStyle(
-            color: AppColors.asphalt,
-            fontWeight: FontWeight.w800,
-          ),
         ),
       ],
     );
@@ -385,13 +403,34 @@ class _BriefingGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasNotes = ride.notes.isNotEmpty;
+
     return CardFrame(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _BriefRow(label: 'Saída', value: ride.departureSummary),
-          _BriefRow(label: 'Briefing', value: ride.briefing),
+          _BriefRow(label: 'Data', value: '${ride.date} - ${ride.weekday}'),
+          _BriefRow(label: 'Destino', value: ride.destination),
+          _BriefRow(label: 'Ponto de partida', value: ride.departureSummary),
+          _BriefRow(label: 'Hora do briefing', value: ride.briefing),
+          _BriefRow(label: 'Hora da saída', value: ride.time),
+          _BriefRow(label: 'Pedágios (ida e volta)', value: ride.tolls),
           _BriefRow(label: 'Distância', value: '${ride.distanceKm} km'),
-          _BriefRow(label: 'Pedágios', value: ride.tolls),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 6),
+            child: Divider(height: 1, color: AppColors.paperSoft),
+          ),
+          const SectionLabel('Observações'),
+          const SizedBox(height: 6),
+          Text(
+            hasNotes ? ride.notes : 'Sem observações',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+              color: hasNotes ? AppColors.ink : AppColors.asphalt,
+            ),
+          ),
         ],
       ),
     );
@@ -408,18 +447,14 @@ class _BriefRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 9),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 96, child: SectionLabel(label)),
-          Expanded(
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-            ),
+          SectionLabel(label),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
           ),
         ],
       ),

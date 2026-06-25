@@ -59,6 +59,21 @@ class ApiClient {
     }, expectedStatusCodes: expectedStatusCodes);
   }
 
+  Future<http.Response> put(
+    Uri uri,
+    Map<String, dynamic> payload, {
+    String? authToken,
+    List<int> expectedStatusCodes = const [200],
+  }) {
+    return _send(() {
+      return _client.put(
+        uri,
+        headers: _headers(authToken: authToken, hasBody: true),
+        body: jsonEncode(payload),
+      );
+    }, expectedStatusCodes: expectedStatusCodes);
+  }
+
   Future<http.Response> delete(
     Uri uri, {
     String? authToken,

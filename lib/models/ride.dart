@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import '../theme/app_theme.dart';
+import 'json_parsers.dart';
+import 'place.dart';
 import 'ride_user.dart';
 
 class Ride {
@@ -21,6 +23,8 @@ class Ride {
     required this.canceled,
     required this.briefing,
     required this.tolls,
+    required this.notes,
+    required this.editData,
   });
 
   final int id;
@@ -39,6 +43,8 @@ class Ride {
   final bool canceled;
   final String briefing;
   final String tolls;
+  final String notes;
+  final RideEditData editData;
 
   String get departureSummary {
     if (departureDetail.isEmpty) {
@@ -87,6 +93,8 @@ class Ride {
       canceled: json['status'] == 'canceled',
       briefing: _nullableTime(json['briefing_time']) ?? 'Não informado',
       tolls: _formatToll(json['toll']),
+      notes: _formatNotes(json['notes']),
+      editData: RideEditData.fromJson(json),
     );
   }
 
@@ -157,6 +165,14 @@ class Ride {
     return 'R\$ ${amount.toStringAsFixed(2).replaceAll('.', ',')}';
   }
 
+  static String _formatNotes(dynamic value) {
+    if (value is! String) {
+      return '';
+    }
+
+    return value.trim();
+  }
+
   static int _asRoundedInt(dynamic value) {
     return _asDouble(value).round();
   }
@@ -182,5 +198,68 @@ class Ride {
         .toList();
 
     return parts.isEmpty ? [value] : parts;
+  }
+}
+
+/// Raw ride values used to prefill the edit form.
+class RideEditData {
+  const RideEditData({
+    required this.title,
+    required this.rideDate,
+    required this.briefingTime,
+    required this.departureTime,
+    required this.startName,
+    required this.startLat,
+    required this.startLng,
+    required this.destName,
+    required this.destLat,
+    required this.destLng,
+    required this.toll,
+    required this.notes,
+  });
+
+  final String title;
+  final String rideDate;
+  final String? briefingTime;
+  final String? departureTime;
+  final String startName;
+  final double startLat;
+  final double startLng;
+  final String destName;
+  final double destLat;
+  final double destLng;
+  final double? toll;
+  final String notes;
+
+  SelectedPlace get startPlace => _placeFrom(startName, startLat, startLng);
+
+  SelectedPlace get destinationPlace => _placeFrom(destName, destLat, destLng);
+
+  SelectedPlace _placeFrom(String name, double lat, double lng) {
+    return SelectedPlace(
+      placeId: '',
+      name: name,
+      address: '',
+      lat: lat,
+      lng: lng,
+      googleMapsUri: '',
+    );
+  }
+
+  factory RideEditData.fromJson(Map<String, dynamic> json) {
+    return RideEditData(
+      title: asString(json['title']),
+      rideDate: asString(json['ride_date']),
+      briefingTime: asNullableString(json['briefing_time']),
+      departureTime: asNullableString(json['departure_time']),
+      startName: asString(json['start_name']),
+      startLat: asDouble(json['start_lat']),
+      startLng: asDouble(json['start_lng']),
+      destName: asString(json['dest_name']),
+      destLat: asDouble(json['dest_lat']),
+      destLng: asDouble(json['dest_lng']),
+      toll: asNullableDouble(json['toll']),
+      notes: asString(json['notes']),
+    );
   }
 }

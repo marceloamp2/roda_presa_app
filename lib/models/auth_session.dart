@@ -15,9 +15,6 @@ class AuthSession {
       throw const FormatException('Resposta de login inválida.');
     }
 
-    return AuthSession(
-      user: AppUser.fromJson(data),
-      token: token,
-    );
+    return AuthSession(user: AppUser.fromJson(data), token: token);
   }
 }

@@ -28,47 +28,41 @@ class BrandMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const _BrandIcon(),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text.rich(
-              const TextSpan(
-                children: [
-                  TextSpan(
-                    text: 'Roda ',
-                    style: TextStyle(color: AppColors.ink),
-                  ),
-                  TextSpan(
-                    text: 'Presa',
-                    style: TextStyle(color: AppColors.orange),
-                  ),
-                ],
+        Text.rich(
+          const TextSpan(
+            children: [
+              TextSpan(
+                text: 'Roda ',
+                style: TextStyle(color: AppColors.ink),
               ),
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontSize: 28, height: 1),
-            ),
-            const SizedBox(height: 5),
-            const _Clock(),
-          ],
+              TextSpan(
+                text: 'Presa',
+                style: TextStyle(color: AppColors.orange),
+              ),
+            ],
+          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontSize: 28, height: 1),
         ),
       ],
     );
   }
 }
 
-class _Clock extends StatefulWidget {
-  const _Clock();
+class BrandClock extends StatefulWidget {
+  const BrandClock({super.key});
 
   @override
-  State<_Clock> createState() => _ClockState();
+  State<BrandClock> createState() => _BrandClockState();
 }
 
-class _ClockState extends State<_Clock> {
+class _BrandClockState extends State<BrandClock> {
   late DateTime _now;
   Timer? _timer;
 

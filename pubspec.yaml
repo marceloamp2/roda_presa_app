@@ -67,13 +67,13 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/brand/icon_foreground.png"
 
 # Splash screen configuration (run: dart run flutter_native_splash:create)
-# Dark background with the feed brand seal centered (white wheel and orange
-# start arrow), matching the app icon.
+# Orange background with the feed brand seal centered (black rounded badge,
+# white wheel and orange start arrow), matching the _BrandIcon in the feed.
 flutter_native_splash:
-  color: "#16181D"
+  color: "#FF5A1F"
   image: assets/brand/splash_logo.png
   android_12:
-    color: "#16181D"
+    color: "#FF5A1F"
     image: assets/brand/splash_logo.png
 
 # For information on the generic Dart part of this file, see the

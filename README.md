@@ -12,7 +12,9 @@ O Android está configurado com o pacote:
 br.com.rodapresa
 ```
 
-Esse identificador vira permanente depois do primeiro envio para a Play Store. Se quiser outro pacote, altere antes de publicar em `android/app/build.gradle.kts` e no pacote da `MainActivity`.
+Esse identificador vira permanente depois do primeiro envio para a Play Store.
+Se quiser outro pacote, altere antes de publicar em
+`android/app/build.gradle.kts` e no pacote da `MainActivity`.
 
 ### 2. Chave de upload
 
@@ -36,16 +38,32 @@ Copie o arquivo de exemplo e preencha as senhas escolhidas:
 cp key.properties.example key.properties
 ```
 
-`android/key.properties` e `*.jks` são ignorados pelo git. Não envie esses arquivos para o repositório.
+`android/key.properties` e `*.jks` são ignorados pelo git. Não envie esses
+arquivos para o repositório.
 
 ### 3. Google Sign-In
 
 Antes de subir o release, configure no Google Cloud Console:
 
 - um OAuth Client Android com package name `br.com.rodapresa`;
+- o SHA-1 da chave usada para instalar o app em desenvolvimento;
 - o SHA-1 da chave de upload local;
-- depois que a Play Store gerar a chave de assinatura do app, cadastre também o SHA-1 da Play App Signing;
-- mantenha `GOOGLE_WEB_CLIENT_ID` em `.env` apontando para o Web Client usado pelo backend.
+- depois que a Play Store gerar a chave de assinatura do app, cadastre também o
+  SHA-1 da Play App Signing;
+- mantenha `GOOGLE_WEB_CLIENT_ID` em `.env` apontando para o Web Client usado
+  pelo backend.
+
+Se o app mostrar `Configuração do Google inválida`, quase sempre falta cadastrar
+package name `br.com.rodapresa` com o SHA-1 da chave que assinou aquele APK/AAB.
+
+Para ver o SHA-1 da chave de desenvolvimento:
+
+```bash
+keytool -list -v \
+  -keystore ~/.android/debug.keystore \
+  -storepass android \
+  -alias androiddebugkey
+```
 
 Para ver o SHA-1 da chave de upload:
 
@@ -65,6 +83,14 @@ version: 1.0.0+1
 Para cada novo envio à Play Store, aumente o número depois do `+` (`versionCode`).
 
 ### 5. Gerar o App Bundle
+
+O app escolhe a API pelo modo do build:
+
+- `flutter run` usa `API_LOCAL_BASE_URL` do `.env`;
+- build release usa `API_PRODUCTION_BASE_URL` do `.env`.
+
+Se precisar sobrescrever em algum build específico, use
+`--dart-define=API_BASE_URL=...`.
 
 ```bash
 cd roda_presa_app

@@ -123,6 +123,64 @@ class RideApiService {
     double? toll,
     String? notes,
   }) async {
+    final response = await _apiClient.post(
+      _apiClient.uri('/rides'),
+      _ridePayload(
+        title: title,
+        rideDate: rideDate,
+        departureTime: departureTime,
+        startPlace: startPlace,
+        destinationPlace: destinationPlace,
+        briefingTime: briefingTime,
+        toll: toll,
+        notes: notes,
+      ),
+      authToken: authToken,
+    );
+
+    return _parseRide(response.body);
+  }
+
+  Future<Ride> updateRide({
+    required String authToken,
+    required int rideId,
+    required String title,
+    required String rideDate,
+    required String departureTime,
+    required SelectedPlace startPlace,
+    required SelectedPlace destinationPlace,
+    String? briefingTime,
+    double? toll,
+    String? notes,
+  }) async {
+    final response = await _apiClient.put(
+      _apiClient.uri('/rides/$rideId'),
+      _ridePayload(
+        title: title,
+        rideDate: rideDate,
+        departureTime: departureTime,
+        startPlace: startPlace,
+        destinationPlace: destinationPlace,
+        briefingTime: briefingTime,
+        toll: toll,
+        notes: notes,
+      ),
+      authToken: authToken,
+    );
+
+    return _parseRide(response.body);
+  }
+
+  Map<String, dynamic> _ridePayload({
+    required String title,
+    required String rideDate,
+    required String departureTime,
+    required SelectedPlace startPlace,
+    required SelectedPlace destinationPlace,
+    String? briefingTime,
+    double? toll,
+    String? notes,
+  }) {
     final payload = <String, dynamic>{
       'title': title,
       'ride_date': rideDate,
@@ -143,17 +201,9 @@ class RideApiService {
       payload['toll'] = toll;
     }
 
-    if (notes != null && notes.isNotEmpty) {
-      payload['notes'] = notes;
-    }
+    payload['notes'] = notes ?? '';
 
-    final response = await _apiClient.post(
-      _apiClient.uri('/rides'),
-      payload,
-      authToken: authToken,
-    );
-
-    return _parseRide(response.body);
+    return payload;
   }
 
   Future<MyRides> fetchMyRides({required String authToken}) async {

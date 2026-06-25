@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../auth/auth_scope.dart';
 import '../models/place.dart';
+import '../models/ride.dart';
 import '../services/api_exception.dart';
 import '../services/ride_api_service.dart';
 import '../theme/app_theme.dart';
@@ -16,15 +17,45 @@ class CreateRideScreen extends StatefulWidget {
     required this.isActive,
     required this.onSessionExpired,
     required this.onRidePublished,
+    this.rideToEdit,
     super.key,
   });
 
   final bool isActive;
   final VoidCallback onSessionExpired;
   final VoidCallback onRidePublished;
+  final Ride? rideToEdit;
 
   @override
   State<CreateRideScreen> createState() => _CreateRideScreenState();
+}
+
+/// Opens the create screen in edit mode for an existing ride. Returns true
+/// when the ride was saved, so the caller can reload it.
+extension EditRideNavigation on BuildContext {
+  Future<bool?> editRide(Ride ride) {
+    return Navigator.of(this).push<bool>(
+      MaterialPageRoute<bool>(builder: (_) => _EditRidePage(ride: ride)),
+    );
+  }
+}
+
+class _EditRidePage extends StatelessWidget {
+  const _EditRidePage({required this.ride});
+
+  final Ride ride;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: CreateRideScreen(
+        isActive: true,
+        rideToEdit: ride,
+        onSessionExpired: () => Navigator.pop(context),
+        onRidePublished: () => Navigator.pop(context, true),
+      ),
+    );
+  }
 }
 
 class _CreateRideScreenState extends State<CreateRideScreen> {
@@ -40,12 +71,26 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   SelectedPlace? _startPlace;
   bool _publishing = false;
 
+  bool get _isEditing => widget.rideToEdit != null;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.rideToEdit != null) {
+      _fillFieldsFrom(widget.rideToEdit!.editData);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ScreenFrame(
       child: ListView(
         children: [
-          const TwoToneTitle(prefix: 'Novo', highlight: 'Rolê'),
+          TwoToneTitle(
+            prefix: _isEditing ? 'Editar' : 'Novo',
+            highlight: 'Rolê',
+          ),
           const SizedBox(height: AppGaps.section),
           const SectionLabel('Dados'),
           const SizedBox(height: AppGaps.xs),
@@ -131,7 +176,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 3),
                   )
-                : const Text('Publicar rolê'),
+                : Text(_isEditing ? 'Salvar alterações' : 'Publicar rolê'),
           ),
           const SizedBox(height: AppGaps.bottom),
         ],
@@ -143,7 +188,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   void didUpdateWidget(covariant CreateRideScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (!oldWidget.isActive && widget.isActive) {
+    if (!_isEditing && !oldWidget.isActive && widget.isActive) {
       _resetFields();
     }
   }
@@ -166,6 +211,38 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     _tollsController.clear();
     _notesController.clear();
     _titleController.clear();
+  }
+
+  void _fillFieldsFrom(RideEditData editData) {
+    _selectedDate = DateTime.parse(editData.rideDate);
+    _selectedBriefingTime = _parseTimeOfDay(editData.briefingTime);
+    _selectedDepartureTime = _parseTimeOfDay(editData.departureTime);
+    _startPlace = editData.startPlace;
+    _destinationPlace = editData.destinationPlace;
+    _titleController.text = editData.title;
+    _notesController.text = editData.notes;
+
+    if (editData.toll != null) {
+      _tollsController.text = _formatTollForField(editData.toll!);
+    }
+  }
+
+  TimeOfDay? _parseTimeOfDay(String? value) {
+    if (value == null || value.length < 5) {
+      return null;
+    }
+
+    final hour = int.tryParse(value.substring(0, 2));
+    final minute = int.tryParse(value.substring(3, 5));
+    if (hour == null || minute == null) {
+      return null;
+    }
+
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+
+  String _formatTollForField(double toll) {
+    return _BrazilianCurrencyInputFormatter.format((toll * 100).round());
   }
 
   String get _formattedDate {
@@ -249,7 +326,12 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     final authToken = auth.token;
 
     if (authToken == null || authToken.isEmpty) {
-      AppSnackBar.showError(context, 'Entre novamente para publicar o rolê.');
+      AppSnackBar.showError(
+        context,
+        _isEditing
+            ? 'Entre novamente para salvar o rolê.'
+            : 'Entre novamente para publicar o rolê.',
+      );
       widget.onSessionExpired();
       return;
     }
@@ -257,17 +339,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     setState(() => _publishing = true);
 
     try {
-      await _rideApiService.createRide(
-        authToken: authToken,
-        title: _titleController.text.trim(),
-        rideDate: _formatDateForApi(_selectedDate!),
-        briefingTime: _formatTimeForApi(_selectedBriefingTime!),
-        departureTime: _formatTimeForApi(_selectedDepartureTime!),
-        startPlace: _startPlace!,
-        destinationPlace: _destinationPlace!,
-        toll: toll,
-        notes: _notesController.text.trim(),
-      );
+      await _saveRide(authToken: authToken, toll: toll);
 
       if (!mounted) {
         return;
@@ -275,9 +347,14 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
 
       setState(() {
         _publishing = false;
-        _resetFields();
+        if (!_isEditing) {
+          _resetFields();
+        }
       });
-      AppSnackBar.showSuccess(context, 'Rolê publicado.');
+      AppSnackBar.showSuccess(
+        context,
+        _isEditing ? 'Rolê atualizado.' : 'Rolê publicado.',
+      );
       widget.onRidePublished();
     } catch (exception) {
       if (!mounted) {
@@ -301,6 +378,41 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
         exception: exception,
       );
     }
+  }
+
+  Future<void> _saveRide({
+    required String authToken,
+    required double toll,
+  }) async {
+    final rideToEdit = widget.rideToEdit;
+
+    if (rideToEdit != null) {
+      await _rideApiService.updateRide(
+        authToken: authToken,
+        rideId: rideToEdit.id,
+        title: _titleController.text.trim(),
+        rideDate: _formatDateForApi(_selectedDate!),
+        briefingTime: _formatTimeForApi(_selectedBriefingTime!),
+        departureTime: _formatTimeForApi(_selectedDepartureTime!),
+        startPlace: _startPlace!,
+        destinationPlace: _destinationPlace!,
+        toll: toll,
+        notes: _notesController.text.trim(),
+      );
+      return;
+    }
+
+    await _rideApiService.createRide(
+      authToken: authToken,
+      title: _titleController.text.trim(),
+      rideDate: _formatDateForApi(_selectedDate!),
+      briefingTime: _formatTimeForApi(_selectedBriefingTime!),
+      departureTime: _formatTimeForApi(_selectedDepartureTime!),
+      startPlace: _startPlace!,
+      destinationPlace: _destinationPlace!,
+      toll: toll,
+      notes: _notesController.text.trim(),
+    );
   }
 
   String? _validationMessage() {
@@ -352,16 +464,18 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   }
 
   String _publishErrorMessage(Object exception) {
+    final action = _isEditing ? 'salvar' : 'publicar';
+
     if (exception is ApiException) {
       return switch (exception.statusCode) {
-        422 => 'Confira os dados do rolê antes de publicar.',
+        422 => 'Confira os dados do rolê antes de $action.',
         429 => 'Muitas tentativas. Aguarde um pouco e tente novamente.',
-        502 => 'Não foi possível publicar agora. Tente novamente em instantes.',
+        502 => 'Não foi possível $action agora. Tente novamente em instantes.',
         _ => exception.message,
       };
     }
 
-    return 'Não foi possível publicar o rolê agora.';
+    return 'Não foi possível $action o rolê agora.';
   }
 }
 
@@ -497,11 +611,7 @@ class _BrazilianCurrencyInputFormatter extends TextInputFormatter {
       return const TextEditingValue();
     }
 
-    final centsValue = int.parse(digits);
-    final reais = centsValue ~/ 100;
-    final cents = centsValue % 100;
-    final text =
-        'R\$ ${_formatReais(reais)},${AppDateStrings.twoDigits(cents)}';
+    final text = format(int.parse(digits));
 
     return TextEditingValue(
       text: text,
@@ -509,7 +619,15 @@ class _BrazilianCurrencyInputFormatter extends TextInputFormatter {
     );
   }
 
-  String _formatReais(int value) {
+  /// Formats a value in cents as "R$ x.yyy,zz".
+  static String format(int centsValue) {
+    final reais = centsValue ~/ 100;
+    final cents = centsValue % 100;
+
+    return 'R\$ ${_formatReais(reais)},${AppDateStrings.twoDigits(cents)}';
+  }
+
+  static String _formatReais(int value) {
     final characters = value.toString().split('').reversed.toList();
     final groups = <String>[];
 
