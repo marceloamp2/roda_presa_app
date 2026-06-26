@@ -102,20 +102,17 @@ class PlaceSearchField extends StatelessWidget {
           enabled: !selecting,
           onTap: onTap,
         ),
-        onSelect: (suggestion) =>
-            _selectPlace(suggestion, sessionToken, context),
+        onSelect: (suggestion) => _selectPlace(suggestion, context),
       ),
     );
   }
 
   Future<bool> _selectPlace(
     PlaceSuggestion suggestion,
-    String sessionToken,
     BuildContext context,
   ) async {
     final place = await rideApiService.fetchPlaceDetails(
       placeId: suggestion.placeId,
-      sessionToken: sessionToken,
     );
 
     if (!context.mounted) {
