@@ -9,6 +9,8 @@ class AppUser {
     this.motorcycle,
     this.state,
     this.city,
+    this.lat,
+    this.lng,
   });
 
   final int id;
@@ -18,10 +20,13 @@ class AppUser {
   final String? motorcycle;
   final String? state;
   final String? city;
+  final double? lat;
+  final double? lng;
 
   bool get hasMotorcycle => (motorcycle?.trim().isNotEmpty) ?? false;
 
-  bool get hasCity => (city?.trim().isNotEmpty) ?? false;
+  bool get hasCity =>
+      ((city?.trim().isNotEmpty) ?? false) && lat != null && lng != null;
 
   bool get needsOnboarding => !hasMotorcycle || !hasCity;
 
@@ -69,14 +74,56 @@ class AppUser {
   }
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
+    final city = _cityFromJson(json);
+
     return AppUser(
       id: asInt(json['id']),
       name: asRequiredString(json['name']),
       email: asRequiredString(json['email']),
       photoUrl: asNullableString(json['photo_url']),
       motorcycle: asNullableString(json['motorcycle']),
-      state: asNullableString(json['state']),
-      city: asNullableString(json['city']),
+      state: _cityState(json, city),
+      city: _cityName(json, city),
+      lat: _cityLat(json, city),
+      lng: _cityLng(json, city),
     );
+  }
+
+  static Map<String, dynamic>? _cityFromJson(Map<String, dynamic> json) {
+    final city = json['city'];
+
+    if (city is Map) {
+      return asJsonObject(city);
+    }
+
+    return null;
+  }
+
+  static String? _cityName(
+    Map<String, dynamic> json,
+    Map<String, dynamic>? city,
+  ) {
+    return asNullableString(city?['name']) ?? asNullableString(json['city']);
+  }
+
+  static String? _cityState(
+    Map<String, dynamic> json,
+    Map<String, dynamic>? city,
+  ) {
+    return asNullableString(city?['state']) ?? asNullableString(json['state']);
+  }
+
+  static double? _cityLat(
+    Map<String, dynamic> json,
+    Map<String, dynamic>? city,
+  ) {
+    return asNullableDouble(city?['lat'] ?? json['lat']);
+  }
+
+  static double? _cityLng(
+    Map<String, dynamic> json,
+    Map<String, dynamic>? city,
+  ) {
+    return asNullableDouble(city?['lng'] ?? json['lng']);
   }
 }

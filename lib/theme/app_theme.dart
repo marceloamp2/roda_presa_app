@@ -11,6 +11,7 @@ class AppColors {
   static const greenSoft = Color(0xFFDCECE8);
   static const red = Color(0xFFB42318);
   static const redSoft = Color(0xFFFDE3DF);
+  static const blue = Color(0xFF1B5BC4);
   static const inkSoft = Color(0xFFE6E4DC);
   static const asphalt = Color(0xFF6B7079);
   static const hairline = Color(0xFFECEAE3);
@@ -26,7 +27,15 @@ class AppRadius {
 }
 
 class AppDateStrings {
-  static const weekdaysShort = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+  static const weekdaysShort = [
+    'seg',
+    'ter',
+    'qua',
+    'qui',
+    'sex',
+    'sáb',
+    'dom',
+  ];
   static const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
   static const weekdaysFull = [
     'segunda',

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../config/auth_config.dart';
+import 'api_exception.dart';
 
 class GoogleIdentityService {
   GoogleIdentityService({GoogleSignIn? googleSignIn})
@@ -80,4 +81,18 @@ class GoogleIdentityException implements Exception {
 
   @override
   String toString() => message;
+}
+
+/// Maps a Google sign-in failure to a user-facing message, falling back to the
+/// given message when the exception carries none of its own.
+String googleSignInErrorMessage(Object exception, {required String fallback}) {
+  if (exception is GoogleIdentityException) {
+    return exception.message;
+  }
+
+  if (exception is ApiException) {
+    return exception.message;
+  }
+
+  return fallback;
 }

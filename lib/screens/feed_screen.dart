@@ -114,8 +114,16 @@ class _FeedScreenState extends State<FeedScreen> {
     return [
       if (_loading) const LinearProgressIndicator(minHeight: 2),
       for (final ride in _rides)
-        RideCard(ride: ride, onTap: () => context.openRide(ride)),
+        RideCard(ride: ride, onTap: () => _openRide(ride)),
     ];
+  }
+
+  Future<void> _openRide(Ride ride) async {
+    await context.openRide(ride);
+
+    if (mounted) {
+      await _loadRides();
+    }
   }
 
   Future<void> _loadRides() async {
@@ -204,36 +212,36 @@ class _FeedHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const BrandMark(),
-        const SizedBox(width: 16),
-        Flexible(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
+        const Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [BrandMark(), Spacer(), BrandClock()],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
                 city,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.end,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              Transform.translate(
-                offset: const Offset(0, -3),
-                child: TextButton(
-                  onPressed: onChangeLocation,
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 24),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: const Text('trocar'),
-                ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: onChangeLocation,
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(0, 24),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-            ],
-          ),
+              child: const Text('trocar'),
+            ),
+          ],
         ),
       ],
     );

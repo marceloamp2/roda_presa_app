@@ -18,21 +18,23 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  static const FeedLocation _homeLocation = FeedLocation(
+  static const FeedLocation _fallbackLocation = FeedLocation(
     city: 'Ribeirão Preto, SP',
     lat: -21.1699,
     lng: -47.8099,
   );
 
   int _tabIndex = 0;
-  FeedLocation _selectedLocation = _homeLocation;
+  FeedLocation? _selectedLocation;
   double _radiusKm = 100;
   int _feedRefreshTick = 0;
 
   @override
   Widget build(BuildContext context) {
+    final homeLocation = _homeLocation(context);
+
     return Scaffold(
-      body: IndexedStack(index: _tabIndex, children: _pages),
+      body: IndexedStack(index: _tabIndex, children: _pages(homeLocation)),
       bottomNavigationBar: _BottomTabs(
         selectedIndex: _tabIndex,
         onTabSelected: _setTab,
@@ -40,11 +42,25 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  List<Widget> get _pages {
+  FeedLocation _homeLocation(BuildContext context) {
+    final user = AuthScope.of(context).user;
+
+    if (user != null && user.hasCity) {
+      return FeedLocation(
+        city: user.cityAndState,
+        lat: user.lat!,
+        lng: user.lng!,
+      );
+    }
+
+    return _fallbackLocation;
+  }
+
+  List<Widget> _pages(FeedLocation homeLocation) {
     return [
       FeedScreen(
-        homeLocation: _homeLocation,
-        selectedLocation: _selectedLocation,
+        homeLocation: homeLocation,
+        selectedLocation: _selectedLocation ?? homeLocation,
         radiusKm: _radiusKm,
         feedRefreshTick: _feedRefreshTick,
         onRadiusChanged: _setRadius,
@@ -143,7 +159,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   void _returnHomeLocation() {
-    setState(() => _selectedLocation = _homeLocation);
+    setState(() => _selectedLocation = null);
   }
 }
 
