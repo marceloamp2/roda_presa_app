@@ -25,6 +25,7 @@ class Ride {
     required this.tolls,
     required this.notes,
     required this.editData,
+    this.organizerId,
   });
 
   final int id;
@@ -45,6 +46,7 @@ class Ride {
   final String tolls;
   final String notes;
   final RideEditData editData;
+  final int? organizerId;
 
   String get departureSummary {
     if (departureDetail.isEmpty) {
@@ -71,6 +73,10 @@ class Ride {
 
   int get baseConfirmedCount => max(confirmedCount, users.length);
 
+  bool isOrganizedBy(int? userId) {
+    return userId != null && organizerId == userId;
+  }
+
   factory Ride.fromJson(Map<String, dynamic> json) {
     final rideDate = _parseDate(json['ride_date'] as String);
     final users = _parseUsers(json['confirmations']);
@@ -95,6 +101,7 @@ class Ride {
       tolls: _formatToll(json['toll']),
       notes: _formatNotes(json['notes']),
       editData: RideEditData.fromJson(json),
+      organizerId: _parseOrganizerId(json['organizer']),
     );
   }
 
@@ -115,6 +122,16 @@ class Ride {
     }
 
     return _asRoundedInt(value);
+  }
+
+  static int? _parseOrganizerId(dynamic value) {
+    if (value is! Map) {
+      return null;
+    }
+
+    final id = asJsonObject(value)['id'];
+
+    return id == null ? null : _asRoundedInt(id);
   }
 
   static DateTime _parseDate(String value) {

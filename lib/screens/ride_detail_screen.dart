@@ -14,18 +14,42 @@ import '../widgets/confirm_cancel_dialog.dart';
 import 'create_ride_screen.dart';
 
 class RideDetailScreen extends StatefulWidget {
-  const RideDetailScreen({required this.ride, super.key});
+  const RideDetailScreen({
+    required this.ride,
+    this.initialJoined = false,
+    this.initialOrganizer = false,
+    super.key,
+  });
 
   final Ride ride;
+  final bool initialJoined;
+  final bool initialOrganizer;
 
   @override
   State<RideDetailScreen> createState() => _RideDetailScreenState();
 }
 
 extension RideNavigation on BuildContext {
-  Future<void> openRide(Ride ride) {
+  Future<void> openRide(
+    Ride ride, {
+    bool initialJoined = false,
+    bool initialOrganizer = false,
+  }) {
+    final userId = AuthScope.maybeOf(this)?.user?.id;
+    final isOrganizer = initialOrganizer || ride.isOrganizedBy(userId);
+    final hasJoined =
+        initialJoined ||
+        isOrganizer ||
+        ride.users.any((user) => user.id == userId);
+
     return Navigator.of(this).push(
-      MaterialPageRoute<void>(builder: (_) => RideDetailScreen(ride: ride)),
+      MaterialPageRoute<void>(
+        builder: (_) => RideDetailScreen(
+          ride: ride,
+          initialJoined: hasJoined,
+          initialOrganizer: isOrganizer,
+        ),
+      ),
     );
   }
 }
@@ -36,11 +60,14 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
   late Ride _ride;
   bool _submitting = false;
   bool _loadingDetails = false;
+  bool _useInitialCurrentUserState = true;
   String? _detailsError;
   int _requestVersion = 0;
 
+  int? get _currentUserId => AuthScope.of(context).user?.id;
+
   RideUser? get _currentUserConfirmation {
-    final userId = AuthScope.of(context).user?.id;
+    final userId = _currentUserId;
 
     if (userId == null) {
       return null;
@@ -49,9 +76,16 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
     return _ride.users.where((user) => user.id == userId).firstOrNull;
   }
 
-  bool get _hasJoinedRide => _currentUserConfirmation != null;
+  bool get _hasJoinedRide {
+    return _currentUserConfirmation != null ||
+        (_useInitialCurrentUserState && widget.initialJoined);
+  }
 
-  bool get _isOrganizer => _currentUserConfirmation?.organizer == true;
+  bool get _isOrganizer {
+    return _currentUserConfirmation?.organizer == true ||
+        _ride.isOrganizedBy(_currentUserId) ||
+        (_useInitialCurrentUserState && widget.initialOrganizer);
+  }
 
   bool get _isRideCanceled => _ride.canceled;
 
@@ -168,6 +202,7 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
       setState(() {
         _ride = ride;
         _loadingDetails = false;
+        _useInitialCurrentUserState = false;
       });
     } catch (_) {
       if (!mounted || requestVersion != _requestVersion) {
@@ -234,6 +269,7 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
       setState(() {
         _ride = ride;
         _submitting = false;
+        _useInitialCurrentUserState = false;
       });
       AppSnackBar.showSuccess(context, 'Você entrou na lista.');
     } catch (exception) {
@@ -261,6 +297,7 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
       setState(() {
         _ride = ride;
         _submitting = false;
+        _useInitialCurrentUserState = false;
       });
       AppSnackBar.showSuccess(context, 'Você saiu da lista.');
     } catch (exception) {
