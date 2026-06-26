@@ -63,27 +63,31 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
     final rides = _selectedRides;
 
     return ScreenFrame(
-      child: ListView(
-        children: [
-          const TwoToneTitle(prefix: 'Meus', highlight: 'Rolês'),
-          const SizedBox(height: AppGaps.md),
-          _SegmentedControl(
-            value: _segment,
-            onChanged: (value) => setState(() => _segment = value),
-          ),
-          const SizedBox(height: AppGaps.lg),
-          SectionLabel(_segment == 0 ? 'Vou nesses' : 'Organizo'),
-          const SizedBox(height: AppGaps.xs),
-          if (_loading) const _LoadingState(),
-          if (!_loading && _errorMessage != null)
-            _MessageState(message: _errorMessage!, onRetry: _reload),
-          if (!_loading && _errorMessage == null && rides.isEmpty)
-            const _EmptyState(),
-          if (!_loading && _errorMessage == null)
-            for (final ride in rides)
-              RideCard(ride: ride, onTap: () => _openRide(ride)),
-          const SizedBox(height: AppGaps.bottom),
-        ],
+      child: RefreshIndicator(
+        onRefresh: _reload,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            const TwoToneTitle(prefix: 'Meus', highlight: 'Rolês'),
+            const SizedBox(height: AppGaps.md),
+            _SegmentedControl(
+              value: _segment,
+              onChanged: (value) => setState(() => _segment = value),
+            ),
+            const SizedBox(height: AppGaps.lg),
+            SectionLabel(_segment == 0 ? 'Vou nesses' : 'Organizo'),
+            const SizedBox(height: AppGaps.xs),
+            if (_loading) const _LoadingState(),
+            if (!_loading && _errorMessage != null)
+              _MessageState(message: _errorMessage!, onRetry: _reload),
+            if (!_loading && _errorMessage == null && rides.isEmpty)
+              const _EmptyState(),
+            if (!_loading && _errorMessage == null)
+              for (final ride in rides)
+                RideCard(ride: ride, onTap: () => _openRide(ride)),
+            const SizedBox(height: AppGaps.bottom),
+          ],
+        ),
       ),
     );
   }
@@ -99,11 +103,23 @@ class _MyRidesScreenState extends State<MyRidesScreen> {
   }
 
   Future<void> _openRide(Ride ride) async {
-    await context.openRide(ride);
+    final initialOrganizer = _isInList(ride, _rides?.organized);
+    final initialJoined =
+        initialOrganizer || _isInList(ride, _rides?.confirmed);
+
+    await context.openRide(
+      ride,
+      initialJoined: initialJoined,
+      initialOrganizer: initialOrganizer,
+    );
 
     if (mounted) {
       await _reload();
     }
+  }
+
+  bool _isInList(Ride ride, List<Ride>? rides) {
+    return rides?.any((item) => item.id == ride.id) ?? false;
   }
 
   void _loadIfNeeded() {
