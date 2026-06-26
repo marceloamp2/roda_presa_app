@@ -7,6 +7,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'auth/auth_controller.dart';
 import 'auth/auth_scope.dart';
 import 'screens/home_shell.dart';
+import 'services/app_update_service.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -24,13 +25,23 @@ class RodaPresaApp extends StatefulWidget {
 }
 
 class _RodaPresaAppState extends State<RodaPresaApp> {
+  late final AppUpdateService _appUpdateService;
   late final AuthController _authController;
 
   @override
   void initState() {
     super.initState();
+    _appUpdateService = AppUpdateService();
     _authController = AuthController();
+
+    _checkForRequiredUpdate();
     unawaited(_authController.restoreSession());
+  }
+
+  void _checkForRequiredUpdate() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_appUpdateService.checkForImmediateUpdate());
+    });
   }
 
   @override
