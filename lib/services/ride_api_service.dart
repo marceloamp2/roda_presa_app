@@ -99,14 +99,8 @@ class RideApiService {
     return _parsePlaceSuggestions(response.body);
   }
 
-  Future<SelectedPlace> fetchPlaceDetails({
-    required String placeId,
-    required String sessionToken,
-  }) async {
-    final uri = _apiClient.uriFromSegments(
-      ['places', placeId],
-      {'session_token': sessionToken},
-    );
+  Future<SelectedPlace> fetchPlaceDetails({required String placeId}) async {
+    final uri = _apiClient.uriFromSegments(['places', placeId]);
     final response = await _apiClient.get(uri);
 
     return _parseSelectedPlace(response.body);
