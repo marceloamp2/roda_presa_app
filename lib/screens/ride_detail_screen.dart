@@ -507,7 +507,7 @@ class _WhatsAppGroupButton extends StatelessWidget {
       child: FilledButton.icon(
         onPressed: onTap,
         icon: const FaIcon(FontAwesomeIcons.whatsapp),
-        label: const Text('Entrar no grupo'),
+        label: const Text('Entrar no grupo do WhatsApp'),
       ),
     );
   }
