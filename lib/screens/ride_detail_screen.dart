@@ -188,10 +188,14 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
     final link = _ride.whatsappGroupLink;
     if (link == null || link.isEmpty) return;
 
-    final launched = await launchUrl(
-      Uri.parse(link),
-      mode: LaunchMode.externalApplication,
-    );
+    final uri = Uri.tryParse(link);
+    if (uri == null) {
+      if (!mounted) return;
+      AppSnackBar.showError(context, 'Não foi possível abrir o WhatsApp.');
+      return;
+    }
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
 
     if (!mounted || launched) return;
     AppSnackBar.showError(context, 'Não foi possível abrir o WhatsApp.');

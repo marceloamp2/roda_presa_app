@@ -201,11 +201,7 @@ class RideApiService {
     }
 
     payload['notes'] = notes ?? '';
-
-    final trimmedWhatsappGroupLink = whatsappGroupLink?.trim();
-    if (trimmedWhatsappGroupLink != null && trimmedWhatsappGroupLink.isNotEmpty) {
-      payload['whatsapp_group_link'] = trimmedWhatsappGroupLink;
-    }
+    payload['whatsapp_group_link'] = whatsappGroupLink?.trim() ?? '';
 
     return payload;
   }
