@@ -25,6 +25,7 @@ class Ride {
     required this.briefing,
     required this.tolls,
     required this.notes,
+    this.whatsappGroupLink,
     required this.editData,
     this.organizerId,
   });
@@ -47,6 +48,7 @@ class Ride {
   final String briefing;
   final String tolls;
   final String notes;
+  final String? whatsappGroupLink;
   final RideEditData editData;
   final int? organizerId;
 
@@ -112,6 +114,7 @@ class Ride {
       briefing: _nullableTime(json['briefing_time']) ?? 'Não informado',
       tolls: _formatToll(json['toll']),
       notes: _formatNotes(json['notes']),
+      whatsappGroupLink: asNullableString(json['whatsapp_group_link']),
       editData: RideEditData.fromJson(json),
       organizerId: _parseOrganizerId(json['organizer']),
     );
@@ -245,6 +248,7 @@ class RideEditData {
     required this.destLng,
     required this.toll,
     required this.notes,
+    this.whatsappGroupLink,
   });
 
   final String title;
@@ -259,6 +263,7 @@ class RideEditData {
   final double destLng;
   final double? toll;
   final String notes;
+  final String? whatsappGroupLink;
 
   SelectedPlace get startPlace => _placeFrom(startName, startLat, startLng);
 
@@ -289,6 +294,7 @@ class RideEditData {
       destLng: asDouble(json['dest_lng']),
       toll: asNullableDouble(json['toll']),
       notes: asString(json['notes']),
+      whatsappGroupLink: asNullableString(json['whatsapp_group_link']),
     );
   }
 }
