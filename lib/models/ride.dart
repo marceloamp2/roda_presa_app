@@ -16,6 +16,7 @@ class Ride {
     required this.weekday,
     required this.date,
     required this.fullDate,
+    required this.rideDate,
     required this.distanceKm,
     required this.confirmedCount,
     required this.users,
@@ -37,6 +38,7 @@ class Ride {
   final String weekday;
   final String date;
   final String fullDate;
+  final DateTime rideDate;
   final int distanceKm;
   final int confirmedCount;
   final List<RideUser> users;
@@ -54,6 +56,15 @@ class Ride {
     }
 
     return '$departureName, $departureDetail';
+  }
+
+  /// True when the ride day is before today. Time of day is ignored, so a ride
+  /// scheduled for today still counts as upcoming even after its departure time.
+  bool get isPast {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return rideDate.isBefore(today);
   }
 
   String get webUrl => 'https://rodapresa.com.br/rides/$id';
@@ -92,6 +103,7 @@ class Ride {
       weekday: _shortWeekday(rideDate),
       date: _shortDate(rideDate),
       fullDate: _fullDate(rideDate),
+      rideDate: rideDate,
       distanceKm: _asRoundedInt(json['distance_km']),
       confirmedCount: _confirmedCount(json['confirmations_count'], users),
       users: users,
