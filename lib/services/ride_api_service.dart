@@ -116,6 +116,7 @@ class RideApiService {
     String? briefingTime,
     double? toll,
     String? notes,
+    String? whatsappGroupLink,
   }) async {
     final response = await _apiClient.post(
       _apiClient.uri('/rides'),
@@ -128,6 +129,7 @@ class RideApiService {
         briefingTime: briefingTime,
         toll: toll,
         notes: notes,
+        whatsappGroupLink: whatsappGroupLink,
       ),
       authToken: authToken,
     );
@@ -146,6 +148,7 @@ class RideApiService {
     String? briefingTime,
     double? toll,
     String? notes,
+    String? whatsappGroupLink,
   }) async {
     final response = await _apiClient.put(
       _apiClient.uri('/rides/$rideId'),
@@ -158,6 +161,7 @@ class RideApiService {
         briefingTime: briefingTime,
         toll: toll,
         notes: notes,
+        whatsappGroupLink: whatsappGroupLink,
       ),
       authToken: authToken,
     );
@@ -174,6 +178,7 @@ class RideApiService {
     String? briefingTime,
     double? toll,
     String? notes,
+    String? whatsappGroupLink,
   }) {
     final payload = <String, dynamic>{
       'title': title,
@@ -196,6 +201,11 @@ class RideApiService {
     }
 
     payload['notes'] = notes ?? '';
+
+    final trimmedWhatsappGroupLink = whatsappGroupLink?.trim();
+    if (trimmedWhatsappGroupLink != null && trimmedWhatsappGroupLink.isNotEmpty) {
+      payload['whatsapp_group_link'] = trimmedWhatsappGroupLink;
+    }
 
     return payload;
   }
