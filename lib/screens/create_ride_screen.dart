@@ -62,6 +62,8 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
   final RideApiService _rideApiService = RideApiService();
   final TextEditingController _tollsController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _whatsappGroupLinkController =
+      TextEditingController();
   final TextEditingController _titleController = TextEditingController();
 
   DateTime? _selectedDate;
@@ -161,6 +163,13 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
             keyboardType: TextInputType.multiline,
           ),
           _TextInputField(
+            label: 'Link do grupo do WhatsApp (opcional)',
+            hintText: 'https://chat.whatsapp.com/...',
+            icon: FontAwesomeIcons.whatsapp,
+            controller: _whatsappGroupLinkController,
+            keyboardType: TextInputType.url,
+          ),
+          _TextInputField(
             label: 'Título',
             hintText: 'Toque para digitar',
             icon: FontAwesomeIcons.heading,
@@ -198,6 +207,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     _rideApiService.close();
     _tollsController.dispose();
     _notesController.dispose();
+    _whatsappGroupLinkController.dispose();
     _titleController.dispose();
     super.dispose();
   }
@@ -210,6 +220,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     _startPlace = null;
     _tollsController.clear();
     _notesController.clear();
+    _whatsappGroupLinkController.clear();
     _titleController.clear();
   }
 
@@ -221,6 +232,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
     _destinationPlace = editData.destinationPlace;
     _titleController.text = editData.title;
     _notesController.text = editData.notes;
+    _whatsappGroupLinkController.text = editData.whatsappGroupLink ?? '';
 
     if (editData.toll != null) {
       _tollsController.text = _formatTollForField(editData.toll!);
@@ -398,6 +410,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
         destinationPlace: _destinationPlace!,
         toll: toll,
         notes: _notesController.text.trim(),
+        whatsappGroupLink: _whatsappGroupLinkController.text.trim(),
       );
       return;
     }
@@ -412,6 +425,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
       destinationPlace: _destinationPlace!,
       toll: toll,
       notes: _notesController.text.trim(),
+      whatsappGroupLink: _whatsappGroupLinkController.text.trim(),
     );
   }
 
