@@ -143,6 +143,10 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
             ),
             const SizedBox(height: AppGaps.lg),
             _BriefingGrid(ride: _ride),
+            if ((_ride.whatsappGroupLink ?? '').isNotEmpty) ...[
+              const SizedBox(height: AppGaps.lg),
+              _WhatsAppGroupButton(onTap: _openWhatsAppGroup),
+            ],
             const SizedBox(height: AppGaps.lg),
             _ConfirmedList(
               ride: _ride,
@@ -175,6 +179,23 @@ class _RideDetailScreenState extends State<RideDetailScreen> {
       whatsAppUrl,
       mode: LaunchMode.externalApplication,
     );
+
+    if (!mounted || launched) return;
+    AppSnackBar.showError(context, 'Não foi possível abrir o WhatsApp.');
+  }
+
+  Future<void> _openWhatsAppGroup() async {
+    final link = _ride.whatsappGroupLink;
+    if (link == null || link.isEmpty) return;
+
+    final uri = Uri.tryParse(link);
+    if (uri == null) {
+      if (!mounted) return;
+      AppSnackBar.showError(context, 'Não foi possível abrir o WhatsApp.');
+      return;
+    }
+
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
 
     if (!mounted || launched) return;
     AppSnackBar.showError(context, 'Não foi possível abrir o WhatsApp.');
@@ -469,6 +490,24 @@ class _BriefingGrid extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _WhatsAppGroupButton extends StatelessWidget {
+  const _WhatsAppGroupButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: onTap,
+        icon: const FaIcon(FontAwesomeIcons.whatsapp),
+        label: const Text('Entrar no grupo do WhatsApp'),
       ),
     );
   }

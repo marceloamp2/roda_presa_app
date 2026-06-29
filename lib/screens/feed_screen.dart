@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../models/city.dart';
 import '../models/ride.dart';
@@ -36,6 +37,7 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   final RideApiService _rideApiService = RideApiService();
+  late final Future<PackageInfo> _packageInfoFuture;
 
   List<Ride> _rides = const [];
   bool _loading = true;
@@ -47,6 +49,7 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   void initState() {
     super.initState();
+    _packageInfoFuture = PackageInfo.fromPlatform();
     _loadRides();
   }
 
@@ -79,6 +82,7 @@ class _FeedScreenState extends State<FeedScreen> {
           children: [
             _FeedHeader(
               city: location.city,
+              packageInfoFuture: _packageInfoFuture,
               onChangeLocation: () => _openLocationSheet(context),
             ),
             if (_exploringAway) _HomeBack(onPressed: widget.onReturnHome),
@@ -205,9 +209,14 @@ class FeedLocation {
 }
 
 class _FeedHeader extends StatelessWidget {
-  const _FeedHeader({required this.city, required this.onChangeLocation});
+  const _FeedHeader({
+    required this.city,
+    required this.packageInfoFuture,
+    required this.onChangeLocation,
+  });
 
   final String city;
+  final Future<PackageInfo> packageInfoFuture;
   final VoidCallback onChangeLocation;
 
   @override
@@ -215,9 +224,13 @@ class _FeedHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [BrandMark(), Spacer(), BrandClock()],
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const BrandMark(),
+            const Spacer(),
+            _HeaderInfo(packageInfoFuture: packageInfoFuture),
+          ],
         ),
         const SizedBox(height: 16),
         Row(
@@ -245,6 +258,59 @@ class _FeedHeader extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _HeaderInfo extends StatelessWidget {
+  const _HeaderInfo({required this.packageInfoFuture});
+
+  final Future<PackageInfo> packageInfoFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        const BrandClock(),
+        const SizedBox(height: 6),
+        FutureBuilder<PackageInfo>(
+          future: packageInfoFuture,
+          builder: (_, snapshot) => _VersionText(packageInfo: snapshot.data),
+        ),
+      ],
+    );
+  }
+}
+
+class _VersionText extends StatelessWidget {
+  const _VersionText({required this.packageInfo});
+
+  final PackageInfo? packageInfo;
+
+  @override
+  Widget build(BuildContext context) {
+    if (packageInfo == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Text(
+      _versionText(packageInfo!),
+      style: const TextStyle(
+        color: AppColors.asphalt,
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+
+  String _versionText(PackageInfo packageInfo) {
+    final buildNumber = packageInfo.buildNumber.trim();
+
+    if (buildNumber.isEmpty) {
+      return 'v${packageInfo.version}';
+    }
+
+    return 'v${packageInfo.version}+$buildNumber';
   }
 }
 

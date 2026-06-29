@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../auth/auth_scope.dart';
 import '../models/app_user.dart';
@@ -26,16 +25,9 @@ enum _ProfileSaveTarget { motorcycle, city }
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final RideApiService _rideApiService = RideApiService();
-  late final Future<PackageInfo> _packageInfoFuture;
 
   bool _loggingOut = false;
   _ProfileSaveTarget? _savingProfileTarget;
-
-  @override
-  void initState() {
-    super.initState();
-    _packageInfoFuture = PackageInfo.fromPlatform();
-  }
 
   @override
   void dispose() {
@@ -51,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return ScreenFrame(
       child: ListView(
         children: [
-          _ProfileTitle(packageInfoFuture: _packageInfoFuture),
+          const _ProfileTitle(),
           const SizedBox(height: AppGaps.md),
           if (user == null)
             const _MissingUserState()
@@ -207,57 +199,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class _ProfileTitle extends StatelessWidget {
-  const _ProfileTitle({required this.packageInfoFuture});
-
-  final Future<PackageInfo> packageInfoFuture;
+  const _ProfileTitle();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        const Expanded(
-          child: TwoToneTitle(prefix: 'Meu', highlight: 'Perfil'),
-        ),
-        const SizedBox(width: AppGaps.sm),
-        FutureBuilder<PackageInfo>(
-          future: packageInfoFuture,
-          builder: (_, snapshot) {
-            final packageInfo = snapshot.data;
-
-            if (packageInfo == null) {
-              return const SizedBox.shrink();
-            }
-
-            return _AppVersionBadge(versionText: _versionText(packageInfo));
-          },
-        ),
-      ],
-    );
-  }
-
-  String _versionText(PackageInfo packageInfo) {
-    final buildNumber = packageInfo.buildNumber.trim();
-
-    if (buildNumber.isEmpty) {
-      return 'v${packageInfo.version}';
-    }
-
-    return 'v${packageInfo.version}+$buildNumber';
-  }
-}
-
-class _AppVersionBadge extends StatelessWidget {
-  const _AppVersionBadge({required this.versionText});
-
-  final String versionText;
-
-  @override
-  Widget build(BuildContext context) {
-    return Pill(
-      color: AppColors.paperSoft,
-      foreground: AppColors.asphalt,
-      child: Text(versionText),
-    );
+    return const TwoToneTitle(prefix: 'Meu', highlight: 'Perfil');
   }
 }
 

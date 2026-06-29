@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -9,12 +11,14 @@ class GoogleIdentityService {
     : _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
 
   static const List<String> _scopes = ['openid', 'email', 'profile'];
+  static const Duration _initializeTimeout = Duration(seconds: 15);
+  static const Duration _authenticateTimeout = Duration(seconds: 90);
 
   final GoogleSignIn _googleSignIn;
   Future<void>? _initialization;
 
   Future<String> requestIdToken() async {
-    await _initialize();
+    await _initializeWithTimeout();
 
     if (!_googleSignIn.supportsAuthenticate()) {
       throw const GoogleIdentityException(
@@ -23,7 +27,9 @@ class GoogleIdentityService {
     }
 
     try {
-      final account = await _googleSignIn.authenticate(scopeHint: _scopes);
+      final account = await _googleSignIn
+          .authenticate(scopeHint: _scopes)
+          .timeout(_authenticateTimeout);
       final idToken = account.authentication.idToken;
 
       if (idToken == null || idToken.isEmpty) {
@@ -33,6 +39,10 @@ class GoogleIdentityService {
       }
 
       return idToken;
+    } on TimeoutException {
+      throw const GoogleIdentityException(
+        'O login do Google demorou demais para responder. Tente novamente.',
+      );
     } on GoogleSignInException catch (exception) {
       throw GoogleIdentityException(_messageForGoogleException(exception));
     } catch (exception) {
@@ -49,6 +59,18 @@ class GoogleIdentityService {
   Future<void> signOut() async {
     await _initialize();
     await _googleSignIn.signOut();
+  }
+
+  Future<void> _initializeWithTimeout() async {
+    try {
+      await _initialize().timeout(_initializeTimeout);
+    } on TimeoutException {
+      _initialization = null;
+      throw const GoogleIdentityException(
+        'Não foi possível iniciar o login do Google. Atualize o Google Play '
+        'Services e tente novamente.',
+      );
+    }
   }
 
   Future<void> _initialize() {
@@ -83,8 +105,6 @@ class GoogleIdentityException implements Exception {
   String toString() => message;
 }
 
-/// Maps a Google sign-in failure to a user-facing message, falling back to the
-/// given message when the exception carries none of its own.
 String googleSignInErrorMessage(Object exception, {required String fallback}) {
   if (exception is GoogleIdentityException) {
     return exception.message;
