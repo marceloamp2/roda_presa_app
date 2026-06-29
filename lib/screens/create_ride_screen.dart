@@ -164,7 +164,7 @@ class _CreateRideScreenState extends State<CreateRideScreen> {
           ),
           _TextInputField(
             label: 'Link do grupo do WhatsApp (opcional)',
-            hintText: 'https://chat.whatsapp.com/...',
+            hintText: 'Toque para digitar',
             icon: FontAwesomeIcons.whatsapp,
             controller: _whatsappGroupLinkController,
             keyboardType: TextInputType.url,
